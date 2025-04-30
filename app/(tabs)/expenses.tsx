@@ -92,8 +92,8 @@ export default function ExpensesManagerScreen() {
       {/* Legend */}
       <View style={styles.legendContainer}>
         <LegendItem label="Food" color="#388E3C" percent="(35%)" />
-        <LegendItem label="Travel" color="#FBC02D" percent="(25%)" />
-        <LegendItem label="Shopping" color="#37474F" percent="(20%)" />
+        <LegendItem label="Travels" color="#FBC02D" percent="(25%)" />
+        <LegendItem label="Shoppings" color="#37474F" percent="(20%)" />
         <LegendItem label="Others" color="#D32F2F" percent="(20%)" />
       </View>
     </View>
