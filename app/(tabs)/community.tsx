@@ -8,9 +8,11 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useTheme } from '../theme-context';
 
 const CommunityScreen = () => {
   const [activeTab, setActiveTab] = useState('Feed');
+  const { isDarkMode } = useTheme();
 
   const travelers = [
     { name: 'Bishal P.', image: require('../../assets/images/bishal.png') },
@@ -18,19 +20,25 @@ const CommunityScreen = () => {
     { name: 'Arpan C.', image: require('../../assets/images/arpan.png') },
   ];
 
+  const textColor = isDarkMode ? '#fff' : '#222';
+  const mutedText = isDarkMode ? '#aaa' : '#777';
+  const cardBackground = isDarkMode ? '#1e1e1e' : '#fff';
+  const containerBg = isDarkMode ? '#121212' : '#F8F9EA';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: containerBg }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
-        <Text style={styles.header}>Community</Text>
+        <Text style={[styles.header, { color: textColor }]}>Community</Text>
 
         {/* Tabs */}
-        <View style={styles.tabs}>
+        <View style={[styles.tabs, { borderBottomColor: isDarkMode ? '#555' : '#ccc' }]}>
           {['Feed', 'Event', 'Message'].map(tab => (
             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
               <Text
                 style={[
                   styles.tabText,
+                  { color: activeTab === tab ? '#43A047' : mutedText },
                   activeTab === tab && styles.activeTab,
                 ]}
               >
@@ -43,7 +51,7 @@ const CommunityScreen = () => {
 
         {/* Nearby Travelers */}
         <View style={styles.travelersHeader}>
-          <Text style={styles.subHeading}>Nearby Travelers</Text>
+          <Text style={[styles.subHeading, { color: textColor }]}>Nearby Travelers</Text>
           <TouchableOpacity>
             <Text style={styles.seeAll}>See All</Text>
           </TouchableOpacity>
@@ -53,26 +61,26 @@ const CommunityScreen = () => {
           {travelers.map((item, index) => (
             <View key={index} style={{ alignItems: 'center', marginRight: 16 }}>
               <Image source={item.image} style={styles.avatar} />
-              <Text style={styles.avatarName}>{item.name}</Text>
+              <Text style={[styles.avatarName, { color: textColor }]}>{item.name}</Text>
             </View>
           ))}
         </ScrollView>
 
         {/* Post */}
-        <View style={styles.postCard}>
+        <View style={[styles.postCard, { backgroundColor: cardBackground }]}>
           <View style={styles.postHeader}>
             <Image source={require('../../assets/images/bishal.png')} style={styles.avatarSmall} />
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={styles.posterName}>Bishal Poudel</Text>
+                <Text style={[styles.posterName, { color: textColor }]}>Bishal Poudel</Text>
                 <View style={styles.verifiedBadge}>
                   <Text style={styles.verifiedText}>Verified</Text>
                 </View>
               </View>
-              <Text style={styles.timestamp}>2 Hour ago, Garden of Dream, Kathmandu</Text>
+              <Text style={[styles.timestamp, { color: mutedText }]}>2 Hour ago, Garden of Dream, Kathmandu</Text>
             </View>
           </View>
-          <Text style={styles.postText}>
+          <Text style={[styles.postText, { color: textColor }]}>
             It's an ideal spot for relaxation, reading, or enjoying a quiet moment amidst nature.
           </Text>
           <Image
@@ -81,8 +89,6 @@ const CommunityScreen = () => {
           />
         </View>
       </ScrollView>
-
-      
     </View>
   );
 };
@@ -92,30 +98,25 @@ export default CommunityScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9EA',
   },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
     marginTop: 20,
     marginLeft: 20,
-    color: '#222',
   },
   tabs: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
     paddingBottom: 6,
   },
   tabText: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
   activeTab: {
-    color: '#43A047',
     fontWeight: '600',
   },
   underline: {
@@ -149,7 +150,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   postCard: {
-    backgroundColor: '#fff',
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 12,
@@ -183,29 +183,14 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 10,
-    color: '#777',
   },
   postText: {
     fontSize: 14,
-    color: '#444',
     marginBottom: 8,
   },
   postImage: {
     width: '100%',
     height: 180,
     borderRadius: 10,
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    backgroundColor: '#F8F9EA',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
 });
