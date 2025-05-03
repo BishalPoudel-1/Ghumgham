@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,51 +6,29 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
+  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useRouter, usePathname } from 'expo-router';
-
-const featuredDestinations = [
-  {
-    title: 'Bali, Indonesia',
-    subtitle: 'Sun-kissed Beaches & Balinese Spirit',
-    image: require('../../assets/images/bali.png'),
-  },
-  {
-    title: 'Kathmandu, Nepal',
-    subtitle: 'Swayambhunath & Spiritual Serenity',
-    image: require('../../assets/images/kathmandu.png'),
-  },
-  {
-    title: 'Agra, India',
-    subtitle: 'Majestic Taj Mahal & Heritage',
-    image: require('../../assets/images/agra.png'),
-  },
-];
-
-const recommendations = [
-  {
-    title: 'Swayambhunath',
-    desc: 'Ancient religious complex\nHilltop, surrounded by playful monkeys.',
-    image: require('../../assets/images/kathmandu.png'),
-  },
-  {
-    title: 'Patan Durbar Square',
-    desc: 'Rich history, Newari architecture, and UNESCO site',
-    image: require('../../assets/images/patan.png'),
-  },
-];
+import { useTheme } from '../theme-context';
 
 const HomeScreen = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const {
+    isDarkMode,
+    toggleTheme,
+    backgroundColor,
+    rippleStyle,
+    startRipple
+  } = useTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
+    <Animated.View style={[styles.container, { backgroundColor }]}>
+      {/* Ripple animation overlay */}
+      <Animated.View style={rippleStyle} pointerEvents="none" />
 
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
         <View style={styles.header}>
           <Image
@@ -58,12 +36,32 @@ const HomeScreen = () => {
             style={styles.avatar}
           />
           <View>
-            <Text style={styles.greeting}>Good Morning</Text>
-            <Text style={styles.name}>Bishal Poudel</Text>
+            <Text style={[styles.greeting, isDarkMode && { color: '#aaa' }]}>
+              Good Morning
+            </Text>
+            <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
+              Bishal Poudel
+            </Text>
           </View>
           <View style={styles.icons}>
-            <Icon name="notifications-outline" size={24} color="#333" />
-            <Icon name="moon" size={24} color="#333" style={{ marginLeft: 16 }} />
+            <Icon
+              name="notifications-outline"
+              size={24}
+              color={isDarkMode ? '#fff' : '#333'}
+            />
+            <TouchableOpacity
+              onPress={(e) => {
+                const { locationX, locationY } = e.nativeEvent;
+                startRipple(locationX, locationY);
+              }}
+            >
+              <Icon
+                name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
+                size={24}
+                color={isDarkMode ? '#fff' : '#333'}
+                style={{ marginLeft: 16 }}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -74,32 +72,75 @@ const HomeScreen = () => {
               <View style={styles.iconCircle}>
                 <Icon name="calendar-outline" size={24} color="#F8F9EA" />
               </View>
-              <Text style={styles.actionLabel}>{label}</Text>
+              <Text style={[styles.actionLabel, isDarkMode && { color: '#eee' }]}>{label}</Text>
             </View>
           ))}
         </View>
 
         {/* Featured Destinations */}
-        <Text style={styles.sectionTitle}>Featured Destinations</Text>
+        <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
+          Featured Destinations
+        </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {featuredDestinations.map((item, index) => (
+          {[
+            {
+              title: 'Bali, Indonesia',
+              subtitle: 'Sun-kissed Beaches & Balinese Spirit',
+              image: require('../../assets/images/bali.png'),
+            },
+            {
+              title: 'Kathmandu, Nepal',
+              subtitle: 'Swayambhunath & Spiritual Serenity',
+              image: require('../../assets/images/kathmandu.png'),
+            },
+            {
+              title: 'Agra, India',
+              subtitle: 'Majestic Taj Mahal & Heritage',
+              image: require('../../assets/images/agra.png'),
+            },
+          ].map((item, index) => (
             <View key={index} style={styles.card}>
               <Image source={item.image} style={styles.cardImage} />
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+              <Text style={[styles.cardTitle, isDarkMode && { color: '#fff' }]}>{item.title}</Text>
+              <Text style={[styles.cardSubtitle, isDarkMode && { color: '#aaa' }]}>
+                {item.subtitle}
+              </Text>
             </View>
           ))}
         </ScrollView>
 
         {/* Recommendations */}
-        <Text style={styles.sectionTitle}>Today’s Recommendation’s</Text>
+        <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
+          Today’s Recommendations
+        </Text>
         <View style={styles.recommendationContainer}>
-          {recommendations.map((item, index) => (
-            <View key={index} style={styles.recommendationCard}>
+          {[
+            {
+              title: 'Swayambhunath',
+              desc: 'Ancient religious complex\nHilltop, surrounded by playful monkeys.',
+              image: require('../../assets/images/kathmandu.png'),
+            },
+            {
+              title: 'Patan Durbar Square',
+              desc: 'Rich history, Newari architecture, and UNESCO site',
+              image: require('../../assets/images/patan.png'),
+            },
+          ].map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.recommendationCard,
+                isDarkMode && { backgroundColor: '#1e1e1e' },
+              ]}
+            >
               <Image source={item.image} style={styles.recommendationImage} />
               <View style={styles.recommendationText}>
-                <Text style={styles.recommendationTitle}>{item.title}</Text>
-                <Text style={styles.recommendationDesc}>{item.desc}</Text>
+                <Text style={[styles.recommendationTitle, isDarkMode && { color: '#fff' }]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.recommendationDesc, isDarkMode && { color: '#aaa' }]}>
+                  {item.desc}
+                </Text>
                 <TouchableOpacity style={styles.activitiesButton}>
                   <Text style={styles.activitiesText}>Activities</Text>
                 </TouchableOpacity>
@@ -108,9 +149,7 @@ const HomeScreen = () => {
           ))}
         </View>
       </ScrollView>
-
-     
-    </SafeAreaView>
+    </Animated.View>
   );
 };
 
@@ -139,6 +178,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
   },
   icons: {
     marginLeft: 'auto',
@@ -167,6 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginHorizontal: 20,
     marginVertical: 10,
+    color: '#37474F',
   },
   card: {
     width: 180,
@@ -182,6 +223,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginTop: 6,
+    color: '#263238',
   },
   cardSubtitle: {
     fontSize: 12,
@@ -209,6 +251,7 @@ const styles = StyleSheet.create({
   recommendationTitle: {
     fontSize: 15,
     fontWeight: 'bold',
+    color: '#263238',
   },
   recommendationDesc: {
     fontSize: 12,
@@ -225,49 +268,5 @@ const styles = StyleSheet.create({
   activitiesText: {
     fontSize: 12,
     color: '#fff',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: '#F8F9EA',
-  },
-  moreMenuOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    padding: 20,
-    zIndex: 99,
-  },
-  moreMenuBox: {
-    width: '100%',
-    backgroundColor: '#F8F9EA',
-    borderRadius: 20,
-    paddingVertical: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  moreItem: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginBottom: 10,
-  },
-  moreLabel: {
-    fontSize: 12,
-    color: '#37474F',
-    marginTop: 6,
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 20,
   },
 });

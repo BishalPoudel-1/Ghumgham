@@ -1,32 +1,70 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import {
+  View,
+  Modal,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useTheme } from './theme-context';
 
-export default function TabLayout() {
+export default function AppLayout() {
+  return (
+    <ThemeProvider>
+      <TabLayout />
+    </ThemeProvider>
+  );
+}
+
+function TabLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const { isDarkMode } = useTheme();
+
+  type AllowedRoutes =
+    | '/trips'
+    | '/virtual-tours'
+    | '/emergency'
+    | '/expenses'
+    | '/profile';
+
+  type MoreMenuItem = {
+    label: string;
+    icon: string;
+    route: AllowedRoutes;
+  };
+
+  const moreItems: MoreMenuItem[] = [
+    { label: 'Trips', icon: 'calendar', route: '/trips' },
+    { label: 'Virtual Tours', icon: 'glasses', route: '/virtual-tours' },
+    { label: 'Emergency & Safety', icon: 'medkit', route: '/emergency' },
+    { label: 'Expense Manager', icon: 'wallet', route: '/expenses' },
+    { label: 'Profile', icon: 'person', route: '/profile' },
+  ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" translucent={false} backgroundColor="#F8F9EA" />
-
-      {/* Tab Screens */}
-      <Tabs
-        screenOptions={{ headerShown: false }}
-        tabBar={() => null}
+    <View style={[styles.container, isDarkMode && { backgroundColor: '#121212' }]}>
+      <StatusBar
+        style={isDarkMode ? 'light' : 'dark'}
+        translucent={false}
+        backgroundColor={isDarkMode ? '#121212' : '#F8F9EA'}
       />
 
+      <Tabs screenOptions={{ headerShown: false }} tabBar={() => null} />
+
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <NavIcon name="home" label="Home" onPress={() => router.push('/')} active={pathname === '/'} />
-        <NavIcon name="map" label="Map" onPress={() => router.push('/tourmap')} active={pathname === '/tourmap'} />
-        <NavIcon name="compass" label="Explore" onPress={() => router.push('/explore')} active={pathname === '/explore'} />
-        <NavIcon name="people" label="Community" onPress={() => router.push('/community')} active={pathname === '/community'} />
+      <View style={[styles.bottomNav, isDarkMode && { backgroundColor: '#1e1e1e' }]}>
+        <NavIcon name="home" onPress={() => router.push('/')} active={pathname === '/'} />
+        <NavIcon name="map" onPress={() => router.push('/tourmap')} active={pathname === '/tourmap'} />
+        <NavIcon name="compass" onPress={() => router.push('/explore')} active={pathname === '/explore'} />
+        <NavIcon name="people" onPress={() => router.push('/community')} active={pathname === '/community'} />
         <TouchableOpacity onPress={() => setShowMoreMenu(true)}>
-          <Icon name="ellipsis-horizontal" size={24} color="#777" />
+          <Icon name="ellipsis-horizontal" size={24} color={isDarkMode ? '#ccc' : '#777'} />
         </TouchableOpacity>
       </View>
 
@@ -34,34 +72,28 @@ export default function TabLayout() {
       <Modal
         visible={showMoreMenu}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={() => setShowMoreMenu(false)}
       >
         <View style={styles.moreMenuOverlay}>
-          <View style={styles.moreMenuBox}>
-          {[
-  { label: 'Trips', icon: 'calendar', route: '/trips' },
-  { label: 'Virtual Tours', icon: 'glasses', route: '/virtual-tours' },
-  { label: 'Emergency & Safety', icon: 'medkit', route: '/emergency' },
-  { label: 'Expense Manager', icon: 'wallet', route: '/expenses' },
-  { label: 'Profile', icon: 'person', route: '/profile' }, // ✅ route added
-].map((item, index) => (
-  <TouchableOpacity
-    key={index}
-    style={styles.moreItem}
-    onPress={() => {
-      setShowMoreMenu(false);
-      router.push(item.route); // ✅ Navigate to the route
-    }}
-  >
-    <Icon name={item.icon} size={24} color="#37474F" />
-    <Text style={styles.moreLabel}>{item.label}</Text>
-  </TouchableOpacity>
-))}
-
-
+          <View style={[styles.moreMenuBox, isDarkMode && { backgroundColor: '#333' }]}>
+            {moreItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.moreItem}
+                onPress={() => {
+                  setShowMoreMenu(false);
+                  router.push(item.route);
+                }}
+              >
+                <Icon name={item.icon} size={24} color={isDarkMode ? '#fff' : '#37474F'} />
+                <Text style={[styles.moreLabel, isDarkMode && { color: '#fff' }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity onPress={() => setShowMoreMenu(false)} style={styles.closeBtn}>
-              <Icon name="close" size={30} color="#37474F" />
+              <Icon name="close" size={30} color={isDarkMode ? '#fff' : '#37474F'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -70,12 +102,25 @@ export default function TabLayout() {
   );
 }
 
-// Reusable nav icon component
-const NavIcon = ({ name, onPress, active }) => (
-  <TouchableOpacity onPress={onPress}>
-    <Icon name={name} size={24} color={active ? '#43A047' : '#777'} />
-  </TouchableOpacity>
-);
+// ✅ Fixed NavIcon props typing
+type NavIconProps = {
+  name: string;
+  onPress: () => void;
+  active: boolean;
+};
+
+const NavIcon = ({ name, onPress, active }: NavIconProps) => {
+  const { isDarkMode } = useTheme();
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <Icon
+        name={name}
+        size={24}
+        color={active ? '#43A047' : isDarkMode ? '#bbb' : '#777'}
+      />
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

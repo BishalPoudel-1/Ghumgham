@@ -2,18 +2,25 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../theme-context';
 
 export default function SafetyEmergencyScreen() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+
+  const backgroundColor = isDarkMode ? '#121212' : '#F8F9EA';
+  const cardColor = isDarkMode ? '#1e1e1e' : '#FFF3C4';
+  const cardText = isDarkMode ? '#fff' : '#37474F';
+  const subText = isDarkMode ? '#aaa' : '#757575';
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Safety & Emergency</Text>
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.header, { color: cardText }]}>Safety & Emergency</Text>
 
       {/* Weather Info */}
       <View style={styles.section}>
-        <Text style={styles.subHeader}>Current Weather</Text>
-        <Text style={styles.location}>Kathmandu, Nepal</Text>
+        <Text style={[styles.subHeader, { color: cardText }]}>Current Weather</Text>
+        <Text style={[styles.location, { color: subText }]}>Kathmandu, Nepal</Text>
         <View style={styles.weatherRow}>
           <Icon name="cloud-outline" size={30} color="#388E3C" />
           <Text style={styles.weatherText}>24°C</Text>
@@ -22,37 +29,41 @@ export default function SafetyEmergencyScreen() {
 
       {/* Hospital & Embassy Cards */}
       <View style={styles.cardRow}>
-        <View style={styles.infoCard}>
+        <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
           <Icon name="business" size={40} color="#388E3C" />
-          <Text style={styles.cardTitle}>Nearby Hospitals</Text>
-          <Text style={styles.cardSubText}>Find medical help</Text>
+          <Text style={[styles.cardTitle, { color: cardText }]}>Nearby Hospitals</Text>
+          <Text style={[styles.cardSubText, { color: subText }]}>Find medical help</Text>
           <TouchableOpacity style={styles.navigateBtn}>
-            <Text style={styles.navigateText}>Navigate <Icon name="navigate" size={14} /></Text>
+            <Text style={styles.navigateText}>
+              Navigate <Icon name="navigate" size={14} />
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.infoCard}>
+        <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
           <Icon name="business" size={40} color="#388E3C" />
-          <Text style={styles.cardTitle}>Embassy Locator</Text>
-          <Text style={styles.cardSubText}>Find Your Embassy</Text>
+          <Text style={[styles.cardTitle, { color: cardText }]}>Embassy Locator</Text>
+          <Text style={[styles.cardSubText, { color: subText }]}>Find Your Embassy</Text>
           <TouchableOpacity style={styles.navigateBtn}>
-            <Text style={styles.navigateText}>Navigate <Icon name="navigate" size={14} /></Text>
+            <Text style={styles.navigateText}>
+              Navigate <Icon name="navigate" size={14} />
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Emergency Contacts */}
-      <Text style={[styles.subHeader, { marginHorizontal: 20 }]}>Emergency Contacts</Text>
-      <View style={styles.contactBox}>
+      <Text style={[styles.subHeader, { marginHorizontal: 20, color: cardText }]}>Emergency Contacts</Text>
+      <View style={[styles.contactBox, { backgroundColor: cardColor }]}>
         <View style={styles.contactRow}>
           <Icon name="shield-outline" size={22} color="#2E7D32" />
-          <Text style={styles.contactLabel}>Police</Text>
-          <Text style={styles.contactValue}>100</Text>
+          <Text style={[styles.contactLabel, { color: cardText }]}>Police</Text>
+          <Text style={[styles.contactValue, { color: cardText }]}>100</Text>
         </View>
         <View style={styles.contactRow}>
           <Icon name="medical-outline" size={22} color="#2E7D32" />
-          <Text style={styles.contactLabel}>Ambulance</Text>
-          <Text style={styles.contactValue}>150</Text>
+          <Text style={[styles.contactLabel, { color: cardText }]}>Ambulance</Text>
+          <Text style={[styles.contactValue, { color: cardText }]}>150</Text>
         </View>
         <TouchableOpacity style={styles.sosButton}>
           <Icon name="call" size={18} color="#fff" />
@@ -66,26 +77,26 @@ export default function SafetyEmergencyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9EA',
     paddingTop: 20,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   header: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#263238',
     paddingHorizontal: 20,
     marginBottom: 10,
   },
   subHeader: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#37474F',
     paddingHorizontal: 20,
     marginBottom: 6,
   },
   location: {
     fontSize: 14,
-    color: '#757575',
     paddingHorizontal: 20,
   },
   weatherRow: {
@@ -107,7 +118,6 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     width: '45%',
-    backgroundColor: '#FFF3C4',
     padding: 15,
     borderRadius: 15,
     alignItems: 'center',
@@ -117,11 +127,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 8,
     textAlign: 'center',
-    color: '#37474F',
   },
   cardSubText: {
     fontSize: 12,
-    color: '#757575',
     marginVertical: 4,
     textAlign: 'center',
   },
@@ -138,7 +146,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   contactBox: {
-    backgroundColor: '#FFF3C4',
     margin: 20,
     borderRadius: 16,
     padding: 20,
@@ -152,12 +159,10 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
     flex: 1,
-    color: '#37474F',
   },
   contactValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#263238',
   },
   sosButton: {
     flexDirection: 'row',

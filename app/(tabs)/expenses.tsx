@@ -1,56 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Dimensions } from 'react-native';
+import { useTheme } from '../theme-context';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function ExpensesManagerScreen() {
+  const { isDarkMode } = useTheme();
+
   const data = [
-    {
-      name: 'Food',
-      population: 35,
-      color: '#388E3C',
-      legendFontColor: '#333',
-      legendFontSize: 13,
-    },
-    {
-      name: 'Travel',
-      population: 25,
-      color: '#FBC02D',
-      legendFontColor: '#333',
-      legendFontSize: 13,
-    },
-    {
-      name: 'Shopping',
-      population: 20,
-      color: '#37474F',
-      legendFontColor: '#333',
-      legendFontSize: 13,
-    },
-    {
-      name: 'Others',
-      population: 20,
-      color: '#D32F2F',
-      legendFontColor: '#333',
-      legendFontSize: 13,
-    },
+    { name: 'Food', population: 35, color: '#388E3C', legendFontColor: '#333', legendFontSize: 13 },
+    { name: 'Travel', population: 25, color: '#FBC02D', legendFontColor: '#333', legendFontSize: 13 },
+    { name: 'Shopping', population: 20, color: '#37474F', legendFontColor: '#333', legendFontSize: 13 },
+    { name: 'Others', population: 20, color: '#D32F2F', legendFontColor: '#333', legendFontSize: 13 },
   ];
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Expenses Manager</Text>
+  const backgroundColor = isDarkMode ? '#121212' : '#F8F9EA';
+  const cardBackground = isDarkMode ? '#1e1e1e' : '#FFF3C4';
+  const textColor = isDarkMode ? '#fff' : '#263238';
+  const subTextColor = isDarkMode ? '#aaa' : '#757575';
 
-      {/* Summary Box */}
-      <View style={styles.summaryCard}>
+  return (
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.header, { color: textColor }]}>Expenses Manager</Text>
+
+      <View style={[styles.summaryCard, { backgroundColor: cardBackground }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Total Cost</Text>
-          <Text style={styles.amount}>Rs 2,00,000</Text>
-          <Text style={styles.tour}>Kathmandu Tour</Text>
+          <Text style={[styles.label, { color: textColor }]}>Total Cost</Text>
+          <Text style={[styles.amount, { color: textColor }]}>Rs 2,00,000</Text>
+          <Text style={[styles.tour, { color: subTextColor }]}>Kathmandu Tour</Text>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={styles.label}>Persons</Text>
+          <Text style={[styles.label, { color: textColor }]}>Persons</Text>
           <Icon name="people" size={24} color="#2E7D32" />
           <TouchableOpacity style={styles.splitBtn}>
             <Text style={styles.splitText}>Split Bill</Text>
@@ -58,9 +40,8 @@ export default function ExpensesManagerScreen() {
         </View>
       </View>
 
-      {/* Pie Chart Breakdown */}
-      <Text style={styles.subHeader}>Expenses Breakdown</Text>
-      <Text style={styles.tourRight}>Kathmandu Tour</Text>
+      <Text style={[styles.subHeader, { color: textColor }]}>Expenses Breakdown</Text>
+      <Text style={[styles.tourRight, { color: subTextColor }]}>Kathmandu Tour</Text>
 
       <View style={{ alignItems: 'center', marginTop: -10 }}>
         <PieChart
@@ -68,12 +49,12 @@ export default function ExpensesManagerScreen() {
           width={screenWidth}
           height={170}
           chartConfig={{
-            color: () => '#000',
+            color: () => (isDarkMode ? '#fff' : '#000'),
           }}
-          accessor={'population'}
-          backgroundColor={'transparent'}
+          accessor="population"
+          backgroundColor="transparent"
           hasLegend={false}
-          paddingLeft={'15'}
+          paddingLeft="15"
           center={[0, 0]}
           absolute
         />
@@ -83,27 +64,32 @@ export default function ExpensesManagerScreen() {
         </View>
       </View>
 
-      {/* Export Button */}
-      <TouchableOpacity style={styles.exportBtn}>
+      <TouchableOpacity style={[styles.exportBtn, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
         <Icon name="document-outline" size={16} color="#D32F2F" />
         <Text style={styles.exportText}>Export</Text>
       </TouchableOpacity>
 
-      {/* Legend */}
       <View style={styles.legendContainer}>
-        <LegendItem label="Food" color="#388E3C" percent="(35%)" />
-        <LegendItem label="Travels" color="#FBC02D" percent="(25%)" />
-        <LegendItem label="Shoppings" color="#37474F" percent="(20%)" />
-        <LegendItem label="Others" color="#D32F2F" percent="(20%)" />
+        <LegendItem label="Food" color="#388E3C" percent="(35%)" textColor={textColor} />
+        <LegendItem label="Travels" color="#FBC02D" percent="(25%)" textColor={textColor} />
+        <LegendItem label="Shoppings" color="#37474F" percent="(20%)" textColor={textColor} />
+        <LegendItem label="Others" color="#D32F2F" percent="(20%)" textColor={textColor} />
       </View>
     </View>
   );
 }
 
-const LegendItem = ({ label, color, percent }) => (
+type LegendItemProps = {
+  label: string;
+  color: string;
+  percent: string;
+  textColor: string;
+};
+
+const LegendItem = ({ label, color, percent, textColor }: LegendItemProps) => (
   <View style={styles.legendItem}>
     <View style={[styles.dot, { backgroundColor: color }]} />
-    <Text style={styles.legendText}>
+    <Text style={[styles.legendText, { color: textColor }]}>
       {label} <Text style={{ color: '#777' }}>{percent}</Text>
     </Text>
   </View>
@@ -112,17 +98,14 @@ const LegendItem = ({ label, color, percent }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9EA',
     paddingTop: 20,
   },
   header: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#263238',
     paddingHorizontal: 20,
   },
   summaryCard: {
-    backgroundColor: '#FFF3C4',
     borderRadius: 16,
     margin: 20,
     padding: 20,
@@ -131,17 +114,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#37474F',
   },
   amount: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#263238',
     marginTop: 4,
   },
   tour: {
     fontSize: 13,
-    color: '#757575',
     marginTop: 2,
   },
   splitBtn: {
@@ -159,13 +139,11 @@ const styles = StyleSheet.create({
   subHeader: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#37474F',
     paddingHorizontal: 20,
     marginTop: 10,
   },
   tourRight: {
     fontSize: 12,
-    color: '#757575',
     textAlign: 'right',
     marginRight: 20,
     marginTop: -5,
@@ -174,12 +152,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 55,
     alignItems: 'center',
-    color: "#ffff",
     left: 81,
   },
   totalText: {
     fontSize: 20,
-    fontWeight: "900",
+    fontWeight: '900',
     color: '#ffffff',
   },
   totalAmount: {
@@ -190,7 +167,6 @@ const styles = StyleSheet.create({
   exportBtn: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#43A047',
     paddingVertical: 6,
@@ -221,6 +197,5 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 14,
-    color: '#263238',
   },
 });

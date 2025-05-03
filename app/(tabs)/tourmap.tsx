@@ -15,6 +15,7 @@ import {
 import MapView, { Marker, Region } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as Location from 'expo-location';
+import { useTheme } from '../theme-context';
 
 const MapScreen = () => {
   const defaultRegion: Region = {
@@ -34,6 +35,7 @@ const MapScreen = () => {
   const mapRef = useRef<MapView>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const { isDarkMode, toggleTheme } = useTheme();
 
   const window = Dimensions.get('window');
 
@@ -61,7 +63,6 @@ const MapScreen = () => {
         mapRef.current.animateToRegion(coords, 1000);
       }
 
-      // Animate loader fade-out
       setShowCheck(true);
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -114,7 +115,7 @@ const MapScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDarkMode && { backgroundColor: '#121212' }]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
@@ -124,7 +125,6 @@ const MapScreen = () => {
         {userLocation && <Marker coordinate={userLocation} title="You are here" />}
       </MapView>
 
-      {/* Pulse Animation */}
       {userLocation && showPulse && (
         <Animated.View
           style={[
@@ -149,78 +149,71 @@ const MapScreen = () => {
         />
       )}
 
-      {/* Loader */}
       {loading && (
         <Animated.View style={[styles.loaderOverlay, { opacity: fadeAnim }]}>
           {!showCheck ? (
             <>
               <ActivityIndicator size="large" color="#43A047" />
-              <Text style={{ marginTop: 10 }}>Fetching your location...</Text>
+              <Text style={{ marginTop: 10, color: isDarkMode ? '#fff' : '#000' }}>Fetching your location...</Text>
             </>
           ) : (
             <>
               <Icon name="checkmark-circle-outline" size={40} color="#43A047" />
-              <Text style={{ marginTop: 10 }}>Location fetched!</Text>
+              <Text style={{ marginTop: 10, color: isDarkMode ? '#fff' : '#000' }}>Location fetched!</Text>
             </>
           )}
         </Animated.View>
       )}
 
-      {/* Top Bar */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, isDarkMode && { backgroundColor: '#1e1e1e' }]}>
         <TouchableOpacity>
-          <Icon name="arrow-back" size={24} color="#000" />
+          <Icon name="arrow-back" size={24} color={isDarkMode ? '#fff' : '#000'} />
         </TouchableOpacity>
-        <Text style={styles.title}>Navigation</Text>
+        <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#000' }]}>Navigation</Text>
         <View style={styles.toggleContainer}>
-          <Text style={{ fontSize: 12 }}>Offline Mode</Text>
+          <Text style={{ fontSize: 12, color: isDarkMode ? '#fff' : '#000' }}>Offline Mode</Text>
           <Switch
             value={offline}
             onValueChange={() => setOffline(!offline)}
-            trackColor={{ false: '#ccc', true: '#43A047' }}
+            trackColor={{ false: '#888', true: '#43A047' }}
           />
         </View>
       </View>
 
-      {/* Transport Modes */}
-      <View style={styles.transportMode}>
+      <View style={[styles.transportMode, isDarkMode && { backgroundColor: '#333' }]}>
         <Icon name="walk" size={22} color="#43A047" style={styles.iconSpacing} />
         <Icon name="bicycle" size={22} color="#43A047" style={styles.iconSpacing} />
         <Icon name="bus" size={22} color="#43A047" />
       </View>
 
-      {/* Map Tools */}
       <View style={styles.mapTools}>
-        <TouchableOpacity style={styles.toolButton} onPress={handleLocate}>
-          <Icon name="locate" size={20} color="#000" />
+        <TouchableOpacity style={[styles.toolButton, isDarkMode && { backgroundColor: '#444' }]} onPress={handleLocate}>
+          <Icon name="locate" size={20} color={isDarkMode ? '#fff' : '#000'} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolButton}>
-          <Icon name="compass" size={20} color="#000" />
+        <TouchableOpacity style={[styles.toolButton, isDarkMode && { backgroundColor: '#444' }]}>
+          <Icon name="compass" size={20} color={isDarkMode ? '#fff' : '#000'} />
         </TouchableOpacity>
       </View>
 
-      {/* Download Region Button */}
-      <TouchableOpacity style={styles.downloadButton}>
+      <TouchableOpacity style={[styles.downloadButton, isDarkMode && { backgroundColor: '#333' }]}>
         <Icon name="download" size={16} color="#43A047" />
-        <Text style={styles.downloadText}>Download Region</Text>
+        <Text style={[styles.downloadText, isDarkMode && { color: '#fff' }]}>Download Region</Text>
       </TouchableOpacity>
 
-      {/* Bottom Search Bar */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, isDarkMode && { backgroundColor: '#1e1e1e' }]}>
         <View style={styles.searchSection}>
           <Icon name="menu" size={24} color="#43A047" />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: isDarkMode ? '#fff' : '#000' }]}
             placeholder="Search Your Destination"
-            placeholderTextColor="#888"
+            placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
           />
           <Icon name="mic" size={22} color="#43A047" />
         </View>
         <View style={styles.bottomTabs}>
-      
           <TouchableOpacity style={styles.tab}>
-            <Icon name="bookmark" size={20} color="#333" />
-            <Text style={styles.tabText}>Saved Places</Text>
+            <Icon name="bookmark" size={20} color={isDarkMode ? '#fff' : '#333'} />
+            <Text style={[styles.tabText, isDarkMode && { color: '#fff' }]}>Saved Places</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -330,24 +323,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1.6,
     gap: 10,
-  
-    
-    
   },
-  input: { flex: 1, fontSize: 14, color: '#000' 
-  },
+  input: { flex: 1, fontSize: 14, color: '#000' },
   bottomTabs: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    
-    
-    
   },
-  tab: { alignItems: 'center',
-
-   },
+  tab: { alignItems: 'center' },
   tabText: { fontSize: 12, color: '#555', marginTop: 4 },
   tabTextActive: {
     fontSize: 12,
