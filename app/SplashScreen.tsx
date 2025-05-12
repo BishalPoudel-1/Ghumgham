@@ -37,7 +37,7 @@ export default function SplashScreenComponent() {
       Animated.parallel([
         Animated.timing(planeX, {
           toValue: width,
-          duration: 1200,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(rippleScale, {
@@ -58,7 +58,7 @@ export default function SplashScreenComponent() {
           console.error('Navigation or splash hide error:', e);
         }
       });
-    }, 6000); // Shorter delay for faster visibility
+    }, 2000); // Shorter delay for faster visibility
 
     return () => clearTimeout(timeout);
   }, []);
@@ -81,7 +81,7 @@ export default function SplashScreenComponent() {
         style={[styles.content, { transform: [{ scale: contentScale }] }]}
       >
         <Image
-          source={require('../assets/images/icon.png')}
+          source={require('../assets/images/Iconwithoutplane.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -126,16 +126,16 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
+    width: 130,
+    height: 130,
+    zIndex: 2,
   },
   plane: {
-    width: 160,
-    height: 160,
+    width: 60,
+    height: 60,
     position: 'absolute',
-    top: height / 2 - 30,
-    left: -100,
-    zIndex: 3,
+  top: height / 2 - 85,   // adjust upward from logo
+  left: width / 2 + 95, 
+  zIndex: 3,
   },
 });
