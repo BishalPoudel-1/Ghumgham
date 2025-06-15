@@ -8,45 +8,123 @@ import {
   SafeAreaView,
   ScrollView,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router'; // ✅ Router for navigation
-import GetStartedIllustration from '../assets/images/register.svg'; // ✅ Your SVG
+import { useRouter } from 'expo-router';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
+import { auth, database } from '../firebaseConfig';
+
+import GetStartedIllustration from '../assets/images/register.svg';
 
 const { width } = Dimensions.get('window');
 
 export default function Register() {
   const [agree, setAgree] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [location, setLocation] = useState(''); // ✅ New location state
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const sanitizeEmail = (email: string) => email.toLowerCase().replace(/\./g, '_');
+
+  const handleRegister = async () => {
+    if (!name || !email || !phone || !location || !password) {
+      Alert.alert('Missing Fields', 'Please fill in all fields.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: name });
+
+      // ✅ Use email as DB key after sanitizing
+      const safeEmailKey = sanitizeEmail(email);
+
+      await set(ref(database, `users/${safeEmailKey}`), {
+        name,
+        email,
+        phone,
+        location,
+        createdAt: new Date().toISOString(),
+      });
+
+      Alert.alert('Success', 'Account created successfully!');
+      router.replace('/login');
+    } catch (error: any) {
+      Alert.alert('Registration Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* SVG Illustration */}
         <GetStartedIllustration width={width * 0.8} height={220} style={styles.image} />
 
-        {/* Input Fields */}
         <View style={styles.inputContainer}>
           <Ionicons name="person-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Full name" style={styles.input} />
+          <TextInput
+            placeholder="Full name"
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Valid email" style={styles.input} keyboardType="email-address" />
+          <TextInput
+            placeholder="Valid email"
+            style={styles.input}
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Ionicons name="call-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Phone number" style={styles.input} keyboardType="phone-pad" />
+          <TextInput
+            placeholder="Phone number"
+            style={styles.input}
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
+          />
+        </View>
+
+        {/* ✅ New Location Field */}
+        <View style={styles.inputContainer}>
+          <Ionicons name="location-outline" size={20} color="#43A047" style={styles.icon} />
+          <TextInput
+            placeholder="Location"
+            style={styles.input}
+            value={location}
+            onChangeText={setLocation}
+          />
         </View>
 
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Strong Password" style={styles.input} secureTextEntry />
+          <TextInput
+            placeholder="Strong Password"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
         </View>
 
-        {/* Checkbox */}
         <View style={styles.checkboxContainer}>
           <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox}>
             <Ionicons
@@ -62,16 +140,18 @@ export default function Register() {
           </Text>
         </View>
 
-        {/* Register Button */}
         <TouchableOpacity
-          style={[styles.button, { opacity: agree ? 1 : 0.5 }]}
-          disabled={!agree}
-          onPress={() => router.replace('/login')} // ✅ Navigate to home or main app
+          style={[styles.button, { opacity: agree && !loading ? 1 : 0.5 }]}
+          disabled={!agree || loading}
+          onPress={handleRegister}
         >
-          <Text style={styles.buttonText}>Register &gt;</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Register &gt;</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Footer */}
         <Text style={styles.footerText}>
           Already a member?{' '}
           <Text style={styles.loginLink} onPress={() => router.replace('/login')}>

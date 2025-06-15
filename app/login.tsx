@@ -9,6 +9,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ export default function Login() {
   const [agree, setAgree] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // ✅ Loading state
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -32,10 +34,13 @@ export default function Login() {
     }
 
     try {
+      setLoading(true); // ✅ Start loading
       await signInWithEmailAndPassword(auth, email, password);
       router.replace('/'); // ✅ Go to index.tsx or home
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
+    } finally {
+      setLoading(false); // ✅ Stop loading
     }
   };
 
@@ -69,13 +74,21 @@ export default function Login() {
         {/* Checkbox */}
         <View style={styles.checkboxContainer}>
           <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox} />
-          <Text style={styles.forget} onPress={() => router.push('/forget')}>
+           {/* Checkbox  <Text style={styles.forget} onPress={() => router.push('/forget')}>
             Forget Password
-          </Text>
+          </Text> */}
         </View>
 
-        <TouchableOpacity style={styles.button} disabled={!agree} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login &gt;</Text>
+        <TouchableOpacity
+          style={styles.button}
+          disabled={!agree || loading}
+          onPress={handleLogin}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Login &gt;</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.footerText}>
