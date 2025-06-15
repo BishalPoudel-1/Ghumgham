@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,31 +9,73 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme-context';
+import { onAuthStateChanged } from 'firebase/auth';
+import { ref as dbRef, onValue } from 'firebase/database';
+import { auth, database } from '../../firebaseConfig';
+
+// ✅ Define the shape of user data
+type Traveler = {
+  name?: string;
+  email?: string;
+  image?: string;
+  location?: string;
+  phone?: string;
+};
 
 const CommunityScreen = () => {
   const [activeTab, setActiveTab] = useState('Feed');
+  const [travelers, setTravelers] = useState<Traveler[]>([]);
   const { isDarkMode } = useTheme();
-
-  const travelers = [
-    { name: 'Bishal P.', image: require('../../assets/images/bishal.png') },
-    { name: 'Dulrav B.', image: require('../../assets/images/dulrav.png') },
-    { name: 'Arpan C.', image: require('../../assets/images/arpan.png') },
-  ];
 
   const textColor = isDarkMode ? '#fff' : '#222';
   const mutedText = isDarkMode ? '#aaa' : '#777';
   const cardBackground = isDarkMode ? '#1e1e1e' : '#fff';
   const containerBg = isDarkMode ? '#121212' : '#F8F9EA';
 
+ useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!user || !user.email) return;
+
+    const emailKey = user.email.replace(/\./g, '_');
+    const currentUserRef = dbRef(database, `users/${emailKey}`);
+
+    onValue(currentUserRef, (snapshot) => {
+      const currentUserData = snapshot.val();
+      const currentLocation = currentUserData?.location || '';
+
+      const allUsersRef = dbRef(database, 'users');
+      onValue(allUsersRef, (snapshot) => {
+        const data = snapshot.val();
+        const filtered: Traveler[] = [];
+
+        for (const key in data) {
+          const entry = data[key];
+
+          const isSameUser = key === emailKey;
+          const isSameLocation =
+            entry?.location?.toLowerCase() === currentLocation.toLowerCase();
+
+          if (!isSameUser && isSameLocation) {
+            filtered.push(entry);
+          }
+        }
+
+        setTravelers(filtered);
+      });
+    });
+  });
+
+  return () => unsubscribe();
+}, []);
+
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header */}
         <Text style={[styles.header, { color: textColor }]}>Community</Text>
 
         {/* Tabs */}
         <View style={[styles.tabs, { borderBottomColor: isDarkMode ? '#555' : '#ccc' }]}>
-          {['Feed', 'Event', 'Message'].map(tab => (
+          {['Feed', 'Event', 'Message'].map((tab) => (
             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)}>
               <Text
                 style={[
@@ -58,15 +100,30 @@ const CommunityScreen = () => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-          {travelers.map((item, index) => (
-            <View key={index} style={{ alignItems: 'center', marginRight: 16 }}>
-              <Image source={item.image} style={styles.avatar} />
-              <Text style={[styles.avatarName, { color: textColor }]}>{item.name}</Text>
-            </View>
-          ))}
+          {travelers.length > 0 ? (
+            travelers.map((item, index) => (
+              <View key={index} style={{ alignItems: 'center', marginRight: 16 }}>
+                <Image
+                  source={
+                    item.image
+                      ? { uri: item.image }
+                      : require('../../assets/images/arpan.png')
+                  }
+                  style={styles.avatar}
+                />
+                <Text style={[styles.avatarName, { color: textColor }]}>
+                  {item.name || 'Traveler'}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ color: mutedText, paddingLeft: 20, paddingTop: 10 }}>
+              No travelers nearby.
+            </Text>
+          )}
         </ScrollView>
 
-        {/* Post */}
+        {/* Sample Post */}
         <View style={[styles.postCard, { backgroundColor: cardBackground }]}>
           <View style={styles.postHeader}>
             <Image source={require('../../assets/images/bishal.png')} style={styles.avatarSmall} />
@@ -77,7 +134,9 @@ const CommunityScreen = () => {
                   <Text style={styles.verifiedText}>Verified</Text>
                 </View>
               </View>
-              <Text style={[styles.timestamp, { color: mutedText }]}>2 Hour ago, Garden of Dream, Kathmandu</Text>
+              <Text style={[styles.timestamp, { color: mutedText }]}>
+                2 Hour ago, Garden of Dream, Kathmandu
+              </Text>
             </View>
           </View>
           <Text style={[styles.postText, { color: textColor }]}>

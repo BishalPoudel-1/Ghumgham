@@ -32,27 +32,27 @@ export default function Profile() {
   const borderColor = isDarkMode ? '#444' : '#ccc';
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const uid = user.uid;
-        const userRef = ref(database, `users/${uid}`);
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user && user.email) {
+      const emailKey = user.email.replace(/\./g, '_'); // sanitize the email
+      const userRef = ref(database, `users/${emailKey}`);
 
-        onValue(userRef, (snapshot) => {
-          const data = snapshot.val();
-          if (data) {
-            setUserData({
-              name: data.name || '',
-              email: data.email || '',
-              phone: data.phone || '',
-              location: data.location || '',
-            });
-          }
-        });
-      }
-    });
+      onValue(userRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserData({
+            name: data.name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            location: data.location || '',
+          });
+        }
+      });
+    }
+  });
 
-    return () => unsubscribe();
-  }, []);
+  return () => unsubscribe();
+}, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>

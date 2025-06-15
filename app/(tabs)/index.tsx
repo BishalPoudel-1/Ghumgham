@@ -36,28 +36,32 @@ const HomeScreen = () => {
     return 'Good Evening';
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace('/firstpage');
-      } else {
-        setGreeting(getGreeting());
-        const uid = user.uid;
-        const userRef = ref(database, `users/${uid}`);
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      router.replace('/firstpage');
+    } else {
+      setGreeting(getGreeting());
 
-        onValue(userRef, (snapshot) => {
-          const data = snapshot.val();
-          if (data?.name) {
-            setUserName(data.name);
-          } else {
-            console.log('No user name found for UID:', uid);
-          }
-        });
-      }
-    });
+      const emailKey = user.email?.replace(/\./g, '_'); // sanitize email
+      if (!emailKey) return;
 
-    return () => unsubscribe();
-  }, []);
+      const userRef = ref(database, `users/${emailKey}`);
+
+      onValue(userRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data?.name) {
+          setUserName(data.name);
+        } else {
+          console.log('No user name found for:', emailKey);
+        }
+      });
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
