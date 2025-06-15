@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../theme-context';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../firebaseConfig'; // Adjust the path if needed
+import { onValue, ref } from 'firebase/database';
+import { auth, database } from '../../firebaseConfig';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -25,11 +26,24 @@ const HomeScreen = () => {
     startRipple,
   } = useTheme();
 
-  // ✅ Auth check
+  const [userName, setUserName] = useState('');
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace('/firstpage'); // redirect if not logged in
+        router.replace('/firstpage');
+      } else {
+        const uid = user.uid;
+        const userRef = ref(database, `users/${uid}`);
+
+        onValue(userRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data?.name) {
+            setUserName(data.name);
+          } else {
+            console.log('No user name found for UID:', uid);
+          }
+        });
       }
     });
 
@@ -38,11 +52,9 @@ const HomeScreen = () => {
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
-      {/* Ripple animation overlay */}
       <Animated.View style={rippleStyle} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header */}
         <View style={styles.header}>
           <Image
             source={require('../../assets/images/avatar.png')}
@@ -53,7 +65,7 @@ const HomeScreen = () => {
               Good Morning
             </Text>
             <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
-              Bishal Poudel
+              {userName || 'Loading...'}
             </Text>
           </View>
           <View style={styles.icons}>
@@ -78,7 +90,6 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.quickActions}>
           {['Plan Trip', 'Booking', 'Expenses', 'Save Places'].map((label, index) => (
             <View key={index} style={styles.action}>
@@ -92,7 +103,6 @@ const HomeScreen = () => {
           ))}
         </View>
 
-        {/* Featured Destinations */}
         <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
           Featured Destinations
         </Text>
@@ -126,7 +136,6 @@ const HomeScreen = () => {
           ))}
         </ScrollView>
 
-        {/* Recommendations */}
         <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
           Today’s Recommendations
         </Text>

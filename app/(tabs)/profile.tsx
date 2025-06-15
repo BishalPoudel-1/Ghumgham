@@ -1,10 +1,29 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme-context';
+import { onAuthStateChanged } from 'firebase/auth';
+import { onValue, ref } from 'firebase/database';
+import { auth, database } from '../../firebaseConfig';
+import { signOut } from 'firebase/auth';
 
-export default function profile() {
+
+export default function Profile() {
   const { isDarkMode } = useTheme();
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+  });
 
   const backgroundColor = isDarkMode ? '#121212' : '#F8F9EA';
   const cardColor = isDarkMode ? '#1e1e1e' : '#fff';
@@ -12,19 +31,57 @@ export default function profile() {
   const subTextColor = isDarkMode ? '#aaa' : '#666';
   const borderColor = isDarkMode ? '#444' : '#ccc';
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const uid = user.uid;
+        const userRef = ref(database, `users/${uid}`);
+
+        onValue(userRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            setUserData({
+              name: data.name || '',
+              email: data.email || '',
+              phone: data.phone || '',
+              location: data.location || '',
+            });
+          }
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.editIcon}>
-            <Icon name="create-outline" size={20} color={textColor} />
-          </TouchableOpacity>
+          <TouchableOpacity
+  style={styles.editIcon}
+  onPress={() => {
+    signOut(auth)
+      .then(() => {
+        console.log('User signed out');
+      })
+      .catch((error) => {
+        console.warn('Logout error:', error.message);
+      });
+  }}
+>
+  <Icon name="log-out-outline" size={20} color={textColor} />
+</TouchableOpacity>
           <Image
             source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
             style={styles.profileImage}
           />
-          <Text style={[styles.name, { color: textColor }]}>Bishal Poudel</Text>
-          <Text style={[styles.subtitle, { color: subTextColor }]}>Solo Traveler | 5 Countries</Text>
+          <Text style={[styles.name, { color: textColor }]}>
+            {userData.name || 'Loading...'}
+          </Text>
+          <Text style={[styles.subtitle, { color: subTextColor }]}>
+            Solo Traveler | 5 Countries
+          </Text>
         </View>
 
         <View style={[styles.tabContainer, { borderColor }]}>
@@ -37,15 +94,15 @@ export default function profile() {
           <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
           <View style={styles.infoRow}>
             <Text style={[styles.label, { color: subTextColor }]}>Email</Text>
-            <Text style={[styles.value, { color: textColor }]}>Bishalpoudel123@gmail.com</Text>
+            <Text style={[styles.value, { color: textColor }]}>{userData.email}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.label, { color: subTextColor }]}>Phone</Text>
-            <Text style={[styles.value, { color: textColor }]}>9898989898</Text>
+            <Text style={[styles.value, { color: textColor }]}>{userData.phone}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.label, { color: subTextColor }]}>Location</Text>
-            <Text style={[styles.value, { color: textColor }]}>Kathmandu, Nepal</Text>
+            <Text style={[styles.value, { color: textColor }]}>{userData.location}</Text>
           </View>
         </View>
 
@@ -147,15 +204,4 @@ const styles = StyleSheet.create({
     color: '#43A047',
   },
   statLabel: {},
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
 });
