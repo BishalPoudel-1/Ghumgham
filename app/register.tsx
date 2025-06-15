@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router'; // ✅ Router for navigation
-import GetStartedIllustration from '../../assets/images/register.svg'; // ✅ Your SVG
+import GetStartedIllustration from '../assets/images/register.svg'; // ✅ Your SVG
 
 const { width } = Dimensions.get('window');
 

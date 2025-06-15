@@ -9,10 +9,16 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useRouter } from 'expo-router';
 
+
 const { width, height } = Dimensions.get('window');
 
 export default function SplashScreenComponent() {
   const router = useRouter();
+
+
+
+
+
 
   // Prevent native splash from auto-hiding
   useEffect(() => {

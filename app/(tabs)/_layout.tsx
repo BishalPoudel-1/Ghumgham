@@ -11,8 +11,8 @@ import { Tabs, usePathname, useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../theme-context';
-import Firstpage from './firstpage';
-import Register from './register';
+import Firstpage from '../firstpage';
+import Register from '../register';
 
 
 

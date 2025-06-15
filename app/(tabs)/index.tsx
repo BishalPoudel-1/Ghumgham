@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../theme-context';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebaseConfig'; // Adjust the path if needed
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -20,8 +22,19 @@ const HomeScreen = () => {
     toggleTheme,
     backgroundColor,
     rippleStyle,
-    startRipple
+    startRipple,
   } = useTheme();
+
+  // ✅ Auth check
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace('/firstpage'); // redirect if not logged in
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
@@ -72,7 +85,9 @@ const HomeScreen = () => {
               <View style={styles.iconCircle}>
                 <Icon name="calendar-outline" size={24} color="#F8F9EA" />
               </View>
-              <Text style={[styles.actionLabel, isDarkMode && { color: '#eee' }]}>{label}</Text>
+              <Text style={[styles.actionLabel, isDarkMode && { color: '#eee' }]}>
+                {label}
+              </Text>
             </View>
           ))}
         </View>
@@ -101,7 +116,9 @@ const HomeScreen = () => {
           ].map((item, index) => (
             <View key={index} style={styles.card}>
               <Image source={item.image} style={styles.cardImage} />
-              <Text style={[styles.cardTitle, isDarkMode && { color: '#fff' }]}>{item.title}</Text>
+              <Text style={[styles.cardTitle, isDarkMode && { color: '#fff' }]}>
+                {item.title}
+              </Text>
               <Text style={[styles.cardSubtitle, isDarkMode && { color: '#aaa' }]}>
                 {item.subtitle}
               </Text>

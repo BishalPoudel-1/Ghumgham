@@ -8,61 +8,79 @@ import {
   SafeAreaView,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebaseConfig'; // adjust path if needed
 
-// ✅ Import SVG like a React component
-import GetStartedIllustration from '../../assets/images/login.svg';
+import GetStartedIllustration from '../assets/images/login.svg';
 
 const { width } = Dimensions.get('window');
 
-export default function Login({ navigation }: any) {
-  const [agree, setAgree] = useState(false);
+export default function Login() {
+  const [agree, setAgree] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const router = useRouter();
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Missing fields', 'Please enter email and password');
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.replace('/'); // ✅ Go to index.tsx or home
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-
-        {/* ✅ SVG Illustration */}
         <GetStartedIllustration width={width * 0.8} height={220} style={styles.image} />
-
-        
-
-       
 
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Enter Your email" style={styles.input} keyboardType="email-address" />
+          <TextInput
+            placeholder="Enter Your email"
+            style={styles.input}
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
         </View>
-
-       
 
         <View style={styles.inputContainer}>
           <Ionicons name="lock-closed-outline" size={20} color="#43A047" style={styles.icon} />
-          <TextInput placeholder="Enter your Password" style={styles.input} secureTextEntry />
+          <TextInput
+            placeholder="Enter your Password"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
         </View>
 
         {/* Checkbox */}
         <View style={styles.checkboxContainer}>
-          <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox}>
-           
-          </TouchableOpacity>
-          <Text style={styles.forget} onPress={() => navigation.navigate('forget')}>Forget Password</Text>
+          <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox} />
+          <Text style={styles.forget} onPress={() => router.push('/forget')}>
+            Forget Password
+          </Text>
         </View>
 
-        {/* Button */}
-        <TouchableOpacity
-          style={[styles.button]}
-          disabled={!agree}
-          onPress={() => {}}
-        >
-          <Text style={styles.buttonText}>Login &gt</Text>
+        <TouchableOpacity style={styles.button} disabled={!agree} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login &gt;</Text>
         </TouchableOpacity>
 
-        {/* Footer */}
         <Text style={styles.footerText}>
-          New Here ?{' '}
-          <Text style={styles.loginLink} onPress={() => navigation.navigate('register')}>
+          New Here?{' '}
+          <Text style={styles.loginLink} onPress={() => router.push('/register')}>
             Register
           </Text>
         </Text>
@@ -85,7 +103,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 50,
   },
-  
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -112,15 +129,6 @@ const styles = StyleSheet.create({
   checkboxBox: {
     marginRight: 8,
   },
-  checkboxText: {
-    flex: 1,
-    color: '#263238',
-    fontSize: 14,
-  },
-  link: {
-    color: '#4CAF50',
-    fontWeight: '500',
-  },
   button: {
     backgroundColor: '#43A047',
     borderRadius: 10,
@@ -140,9 +148,9 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#4CAF50',
     fontWeight: 'bold',
-  }, forget: {
+  },
+  forget: {
     color: '#4CAF50',
     fontWeight: 'bold',
-    
   },
 });

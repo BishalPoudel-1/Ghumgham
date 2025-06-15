@@ -19,7 +19,7 @@ export default function Firstpage() {
     <SafeAreaView style={styles.container}>
       <View style={styles.wrapper}>
         <Image
-          source={require('../../assets/images/firstpageintro.png')}
+          source={require('../assets/images/firstpageintro.png')}
           style={styles.image}
           resizeMode="contain"
         />
