@@ -27,12 +27,21 @@ const HomeScreen = () => {
   } = useTheme();
 
   const [userName, setUserName] = useState('');
+  const [greeting, setGreeting] = useState('');
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         router.replace('/firstpage');
       } else {
+        setGreeting(getGreeting());
         const uid = user.uid;
         const userRef = ref(database, `users/${uid}`);
 
@@ -55,49 +64,62 @@ const HomeScreen = () => {
       <Animated.View style={rippleStyle} pointerEvents="none" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        
         <View style={styles.header}>
-          <Image
-            source={require('../../assets/images/avatar.png')}
-            style={styles.avatar}
-          />
-          <View>
-            <Text style={[styles.greeting, isDarkMode && { color: '#aaa' }]}>
-              Good Morning
-            </Text>
-            <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
-              {userName || 'Loading...'}
-            </Text>
-          </View>
-          <View style={styles.icons}>
-            <Icon
-              name="notifications-outline"
-              size={24}
-              color={isDarkMode ? '#fff' : '#333'}
-            />
-            <TouchableOpacity
-              onPress={(e) => {
-                const { locationX, locationY } = e.nativeEvent;
-                startRipple(locationX, locationY);
-              }}
-            >
-              <Icon
-                name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
-                size={24}
-                color={isDarkMode ? '#fff' : '#333'}
-                style={{ marginLeft: 16 }}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
+  <TouchableOpacity
+    style={{ flexDirection: 'row', alignItems: 'center' }}
+    onPress={() => router.push('/profile')}
+  >
+    <Image
+      source={require('../../assets/images/avatar.png')}
+      style={styles.avatar}
+    />
+    <View>
+      <Text style={[styles.greeting, isDarkMode && { color: '#aaa' }]}>
+        {greeting}
+      </Text>
+      <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
+        {userName || 'Loading...'}
+      </Text>
+    </View>
+  </TouchableOpacity>
+
+  <View style={styles.icons}>
+    <Icon
+      name="notifications-outline"
+      size={24}
+      color={isDarkMode ? '#fff' : '#333'}
+    />
+    <TouchableOpacity
+      onPress={(e) => {
+        const { locationX, locationY } = e.nativeEvent;
+        startRipple(locationX, locationY);
+      }}
+    >
+      <Icon
+        name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
+        size={24}
+        color={isDarkMode ? '#fff' : '#333'}
+        style={{ marginLeft: 16 }}
+      />
+    </TouchableOpacity>
+  </View>
+</View>
+
 
         <View style={styles.quickActions}>
-          {['Plan Trip', 'Booking', 'Expenses', 'Save Places'].map((label, index) => (
+          {[
+            { label: 'Plan Trip', icon: 'navigate-outline' },
+            { label: 'Booking', icon: 'ticket-outline' },
+            { label: 'Expenses', icon: 'wallet-outline' },
+            { label: 'Save Places', icon: 'bookmark-outline' },
+          ].map((item, index) => (
             <View key={index} style={styles.action}>
               <View style={styles.iconCircle}>
-                <Icon name="calendar-outline" size={24} color="#F8F9EA" />
+                <Icon name={item.icon} size={24} color="#F8F9EA" />
               </View>
               <Text style={[styles.actionLabel, isDarkMode && { color: '#eee' }]}>
-                {label}
+                {item.label}
               </Text>
             </View>
           ))}
