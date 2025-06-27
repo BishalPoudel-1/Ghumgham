@@ -11,7 +11,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme-context';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ref as dbRef, onValue } from 'firebase/database';
-import { auth, database } from '../../firebaseConfig';
+import { auth, database } from '../../firebase/firebaseConfig';
 
 // ✅ Define the shape of user data
 type Traveler = {

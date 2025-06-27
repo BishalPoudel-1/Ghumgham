@@ -13,7 +13,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../theme-context';
 import { onAuthStateChanged } from 'firebase/auth';
 import { onValue, ref } from 'firebase/database';
-import { auth, database } from '../../firebaseConfig';
+import { auth, database } from '../../firebase/firebaseConfig';
 
 const HomeScreen = () => {
   const router = useRouter();

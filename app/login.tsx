@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebaseConfig'; // adjust path if needed
+import { auth } from '../firebase/firebaseConfig'; // adjust path if needed
 
 import GetStartedIllustration from '../assets/images/login.svg';
 

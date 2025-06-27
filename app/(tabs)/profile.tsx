@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { getCurrentUser, logoutUser } from '../../firebase/userservice';
 import {
   View,
   Text,
@@ -10,48 +12,64 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme-context';
-import { onAuthStateChanged } from 'firebase/auth';
-import { onValue, ref } from 'firebase/database';
-import { auth, database } from '../../firebaseConfig';
-import { signOut } from 'firebase/auth';
 
+interface UserData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  photoURL?: string;
+  description?: string;
+  countryCount?: number;
+  countriesVisited?: number;
+  citiesVisited?: number;
+  reviewsWritten?: number;
+}
 
 export default function Profile() {
   const { isDarkMode } = useTheme();
-  const [userData, setUserData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    location: '',
-  });
+ const [userData, setUserData] = useState<UserData>({
+  name: '',
+  email: '',
+  phone: '',
+  location: '',
+  photoURL: '',
+  description: '',
+  countryCount: 0,
+  countriesVisited: 0,
+  citiesVisited: 0,
+  reviewsWritten: 0,
+});
+const router = useRouter();
 
   const backgroundColor = isDarkMode ? '#121212' : '#F8F9EA';
   const cardColor = isDarkMode ? '#1e1e1e' : '#fff';
   const textColor = isDarkMode ? '#fff' : '#333';
   const subTextColor = isDarkMode ? '#aaa' : '#666';
   const borderColor = isDarkMode ? '#444' : '#ccc';
+  const [selectedTab, setSelectedTab] = useState<'Profile' | 'History' | 'Setting'>('Profile');
 
-  useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user && user.email) {
-      const emailKey = user.email.replace(/\./g, '_'); // sanitize the email
-      const userRef = ref(database, `users/${emailKey}`);
 
-      onValue(userRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          setUserData({
-            name: data.name || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            location: data.location || '',
-          });
-        }
-      });
-    }
-  });
-
-  return () => unsubscribe();
+ useEffect(() => {
+  getCurrentUser()
+  .then((data) => {
+    const user = data as UserData;  // type assertion here
+    setUserData({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      location: user.location || '',
+      photoURL: user.photoURL || '',
+      description: user.description || '',
+      countryCount: user.countryCount || 0,
+      countriesVisited: user.countriesVisited || 0,
+      citiesVisited: user.citiesVisited || 0,
+      reviewsWritten: user.reviewsWritten || 0,
+    });
+    })
+    .catch((error) => {
+      console.warn('Error fetching user:', error);
+    });
 }, []);
 
   return (
@@ -60,15 +78,15 @@ export default function Profile() {
         <View style={styles.header}>
           <TouchableOpacity
   style={styles.editIcon}
-  onPress={() => {
-    signOut(auth)
-      .then(() => {
-        console.log('User signed out');
-      })
-      .catch((error) => {
-        console.warn('Logout error:', error.message);
-      });
-  }}
+ onPress={() => {
+  logoutUser()
+    .then(() => {
+      console.log('User signed out');
+    })
+    .catch((error) => {
+      console.warn('Logout error:', error.message);
+    });
+}}
 >
   <Icon name="log-out-outline" size={20} color={textColor} />
 </TouchableOpacity>
@@ -84,29 +102,38 @@ export default function Profile() {
           </Text>
         </View>
 
-        <View style={[styles.tabContainer, { borderColor }]}>
-          <Text style={[styles.tab, styles.activeTab]}>Profile</Text>
-          <Text style={[styles.tab, { color: subTextColor }]}>History</Text>
-          <Text style={[styles.tab, { color: subTextColor }]}>Setting</Text>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: subTextColor }]}>Email</Text>
-            <Text style={[styles.value, { color: textColor }]}>{userData.email}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: subTextColor }]}>Phone</Text>
-            <Text style={[styles.value, { color: textColor }]}>{userData.phone}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: subTextColor }]}>Location</Text>
-            <Text style={[styles.value, { color: textColor }]}>{userData.location}</Text>
-          </View>
-        </View>
 
-        <View style={styles.section}>
+      <View style={[styles.tabContainer, { borderColor }]}>
+  {['Profile', 'History', 'Setting'].map((tab) => (
+    <TouchableOpacity key={tab} onPress={() => setSelectedTab(tab as any)}>
+      <Text
+        style={[
+          styles.tab,
+          selectedTab === tab ? styles.activeTab : { color: subTextColor },
+        ]}
+      >
+        {tab}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
+{selectedTab === 'Profile' && (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
+    <View style={styles.infoRow}>
+      <Text style={[styles.label, { color: subTextColor }]}>Email</Text>
+      <Text style={[styles.value, { color: textColor }]}>{userData.email}</Text>
+    </View>
+    <View style={styles.infoRow}>
+      <Text style={[styles.label, { color: subTextColor }]}>Phone</Text>
+      <Text style={[styles.value, { color: textColor }]}>{userData.phone}</Text>
+    </View>
+    <View style={styles.infoRow}>
+      <Text style={[styles.label, { color: subTextColor }]}>Location</Text>
+      <Text style={[styles.value, { color: textColor }]}>{userData.location}</Text>
+    </View>
+    <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Travel Stats</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
@@ -123,15 +150,78 @@ export default function Profile() {
             </View>
           </View>
         </View>
+  </View>
+  
+)}
+
+{selectedTab === 'History' && (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: textColor }]}>History</Text>
+    <Text style={{ color: subTextColor }}>No travel history yet.</Text>
+  </View>
+)}
+
+{selectedTab === 'Setting' && (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: textColor }]}>Settings</Text>
+
+    <TouchableOpacity style={styles.settingItem} onPress={() => router.push('../update_profile_page')}>
+     
+      <Text style={[styles.settingText, { color: textColor }]}>Edit Profile</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Change Password')}>
+      <Text style={[styles.settingText, { color: textColor }]}>Change Password</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Dark Mode Toggle')}>
+      <Text style={[styles.settingText, { color: textColor }]}>Toggle Dark Mode</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Change Language')}>
+      <Text style={[styles.settingText, { color: textColor }]}>Language</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      style={styles.settingItem}
+      onPress={() => {
+  logoutUser()
+    .then(() => {
+      console.log('User signed out');
+    })
+    .catch((error) => {
+      console.warn('Logout error:', error.message);
+    });
+}}
+    >
+      <Text style={[styles.settingText, { color: 'red' }]}>Log Out</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
+
+
+  
+
+        
       </ScrollView>
     </SafeAreaView>
+    
   );
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
+  },settingItem: {
+  paddingVertical: 12,
+  borderBottomWidth: 1,
+  borderColor: '#ccc',
+},
+settingText: {
+  fontSize: 16,
+},
   header: {
     alignItems: 'center',
     paddingTop: 20,

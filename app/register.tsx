@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
-import { auth, database } from '../firebaseConfig';
+import { auth, database } from '../firebase/firebaseConfig';
 
 import GetStartedIllustration from '../assets/images/register.svg';
 
@@ -40,30 +40,41 @@ export default function Register() {
     }
 
     try {
-      setLoading(true);
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+  setLoading(true);
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
 
-      await updateProfile(user, { displayName: name });
+  await updateProfile(user, { displayName: name });
 
-      // ✅ Use email as DB key after sanitizing
-      const safeEmailKey = sanitizeEmail(email);
+  const safeEmailKey = sanitizeEmail(email);
 
-      await set(ref(database, `users/${safeEmailKey}`), {
-        name,
-        email,
-        phone,
-        location,
-        createdAt: new Date().toISOString(),
-      });
+  const userData = {
+    name,
+    email,
+    phone,
+    location,
+    photoURL: '',
+    description: '',
+    countryCount: 0,
+    countriesVisited: 0,
+    citiesVisited: 0,
+    reviewsWritten: 0,
+    createdAt: new Date().toISOString(),
+  };
 
-      Alert.alert('Success', 'Account created successfully!');
-      router.replace('/login');
-    } catch (error: any) {
-      Alert.alert('Registration Error', error.message);
-    } finally {
-      setLoading(false);
-    }
+  console.log('Saving to DB:', safeEmailKey, userData); // ✅ log the data
+
+  await set(ref(database, `users/${safeEmailKey}`), userData);
+
+  Alert.alert('Success', 'Account created successfully!');
+  router.replace('/login');
+} catch (error: any) {
+  console.error('Firebase error:', error); // ✅ catch and show database errors
+  Alert.alert('Registration Error', error.message);
+} finally {
+  setLoading(false);
+}
+
   };
 
   return (
