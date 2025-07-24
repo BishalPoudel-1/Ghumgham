@@ -11,7 +11,6 @@ const firebaseConfig = {
   databaseURL: "https://ghumgham-app-default-rtdb.firebaseio.com/",
   messagingSenderId: "182383031107",
   appId: "1:182383031107:android:85058658ce1209744d75f6"
-  // measurementId is optional and not provided in your JSON
 };
 
 // Initialize Firebase
