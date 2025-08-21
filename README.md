@@ -1,14 +1,11 @@
 # 🌍 Ghumgham ✈️
-<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-
-<img src="https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
-
-<img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
-
-<img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-
-<img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white" />
-
+<p align="center">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
+  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
+  <img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white" />
+</p>
 
 Welcome to **Ghumgham**! A modern, full-featured mobile application designed to make tour and travel booking seamless and enjoyable. Discover new destinations, book your next adventure, and manage your trips all from your phone.
 
@@ -22,9 +19,7 @@ Welcome to **Ghumgham**! A modern, full-featured mobile application designed to 
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Contact](#-contact)
+
 
 ---
 
@@ -50,7 +45,8 @@ This helps others make informed decisions while planning their next adventure.
 - 📝 **Detailed Tour Pages**: Comprehensive details including itinerary, price, and gallery  
 - ⚡ **Real-time Booking System**: Secure booking with data stored in Firestore  
 - ⭐ **User Reviews & Ratings**: Leave feedback on tours completed  
-- 👤 **User Profiles**: Manage profile info and booking history  
+- 👤 **User Profiles**: Manage profile info and booking history
+- 💰 **Split Expenses**: Easily split travel costs among group members for fair expense sharing  
 - 📱 **Cross-Platform**: Built with React Native for iOS and Android  
 
 ---
