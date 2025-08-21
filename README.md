@@ -19,6 +19,7 @@ Welcome to **Ghumgham**! A modern, full-featured mobile application designed to 
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
+-[Design}(#design)
 
 
 ---
@@ -135,3 +136,17 @@ Press a → Run on Android emulator/device
 Press i → Run on iOS simulator/device
 
 Now you can explore the app, create an account, browse tours, and test bookings!
+
+#Design
+Screenshot of App
+
+![WhatsApp Image 2025-08-21 at 9 10 56 PM (1)](https://github.com/user-attachments/assets/b023fe77-5223-440e-804e-7ea5a56e7cfd)
+![WhatsApp Image 2025-08-21 at 9 10 56 PM](https://github.com/user-attachments/assets/389ed0dd-2b3a-43ad-b2fa-a9c3d94b57ba)
+![WhatsApp Image 2025-08-21 at 9 10 55 PM (2)](https://github.com/user-attachments/assets/12e24e35-6bca-4028-88d3-c4545b714e1d)
+![WhatsApp Image 2025-08-21 at 9 10 55 PM (1)](https://github.com/user-attachments/assets/18478385-06da-4f44-8f15-0c0ff5acb762)
+![WhatsApp Image 2025-08-21 at 9 10 55 PM](https://github.com/user-attachments/assets/45394109-02a5-4d78-9a42-3d728368cb8b)
+![WhatsApp Image 2025-08-21 at 9 10 54 PM (2)](https://github.com/user-attachments/assets/64ecc2a3-d5da-446c-b275-de48cbb4d3ef)
+![WhatsApp Image 2025-08-21 at 9 10 54 PM (1)](https://github.com/user-attachments/assets/7761d1aa-478c-4e5b-851e-939f07f50898)
+![WhatsApp Image 2025-08-21 at 9 10 54 PM](https://github.com/user-attachments/assets/2cba6b96-e0eb-487d-8dca-9d286c6b9663)
+![expenses](https://github.com/user-attachments/assets/ffa522ad-2150-4db6-a18e-a9905fefad27)
+
