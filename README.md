@@ -79,3 +79,53 @@ Make sure you have installed:
    ```bash
    git clone https://github.com/BishalPoudel-1/Ghumgham.git
    cd Ghumgham
+   ```
+2. **Install dependencies**
+```
+npm install
+# OR
+yarn install
+```
+
+3. **Set up Firebase**
+
+Create a new Firebase project in the Firebase Console
+
+Add a new Web App to get your Firebase config object
+
+Create a file src/firebaseConfig.ts and add your config:
+```
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+```
+
+Important: Add this file to .gitignore to protect your keys.
+
+## 🏃 Usage
+
+Run the application using Expo or React Native CLI:
+```
+npm start
+# OR
+yarn start
+```
+
+Press a → Run on Android emulator/device
+
+Press i → Run on iOS simulator/device
+
+Now you can explore the app, create an account, browse tours, and test bookings!
