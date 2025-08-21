@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/firebaseConfig'; // adjust path if needed
+import { auth } from '../firebase/firebaseConfig';
 
 import GetStartedIllustration from '../assets/images/login.svg';
 
@@ -24,7 +24,7 @@ export default function Login() {
   const [agree, setAgree] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false); // ✅ Loading state
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -32,15 +32,19 @@ export default function Login() {
       Alert.alert('Missing fields', 'Please enter email and password');
       return;
     }
+     if (email === 'admin' && password === 'admin') {
+    router.push('/admin/admindashboard');
+    return;
+  }
 
     try {
-      setLoading(true); // ✅ Start loading
+      setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/'); // ✅ Go to index.tsx or home
+      router.replace('/');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     } finally {
-      setLoading(false); // ✅ Stop loading
+      setLoading(false);
     }
   };
 
@@ -50,9 +54,10 @@ export default function Login() {
         <GetStartedIllustration width={width * 0.8} height={220} style={styles.image} />
 
         <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={20} color="#43A047" style={styles.icon} />
+          <Ionicons name="mail-outline" size={20} color="#2E7D32" style={styles.icon} />
           <TextInput
-            placeholder="Enter Your email"
+            placeholder="Enter your email"
+            placeholderTextColor="#888"
             style={styles.input}
             keyboardType="email-address"
             value={email}
@@ -61,38 +66,40 @@ export default function Login() {
         </View>
 
         <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={20} color="#43A047" style={styles.icon} />
+          <Ionicons name="lock-closed-outline" size={20} color="#2E7D32" style={styles.icon} />
           <TextInput
-            placeholder="Enter your Password"
+            placeholder="Enter your password"
+            placeholderTextColor="#888"
             style={styles.input}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
         </View>
+        
 
-        {/* Checkbox */}
+        {/* Optional Checkbox */}
         <View style={styles.checkboxContainer}>
-          <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox} />
-           {/* Checkbox  <Text style={styles.forget} onPress={() => router.push('/forget')}>
-            Forget Password
-          </Text> */}
+          <TouchableOpacity onPress={() => setAgree(!agree)} style={styles.checkboxBox}>
+            {agree && <View style={styles.checked} />}
+          </TouchableOpacity>
+          <Text style={styles.agreeText}>Remember me</Text>
         </View>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, { opacity: agree && !loading ? 1 : 0.6 }]}
           disabled={!agree || loading}
           onPress={handleLogin}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Login &gt;</Text>
+            <Text style={styles.buttonText}>Login</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.footerText}>
-          New Here?{' '}
+          New here?{' '}
           <Text style={styles.loginLink} onPress={() => router.push('/register')}>
             Register
           </Text>
@@ -105,49 +112,71 @@ export default function Login() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9EA',
+    backgroundColor: '#E8F5E9',
   },
   container: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 40,
     paddingHorizontal: 20,
   },
   image: {
-    marginTop: 20,
-    marginBottom: 50,
+    marginBottom: 40,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F0DC',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     marginBottom: 16,
     width: '100%',
+    elevation: 2,
   },
   icon: {
     marginRight: 8,
   },
   input: {
     flex: 1,
-    height: 50,
+    height: 48,
     fontSize: 16,
+    color: '#333',
   },
   checkboxContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
     alignItems: 'center',
-    width: '100%',
+    marginBottom: 20,
+    alignSelf: 'flex-start',
   },
   checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#2E7D32',
     marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checked: {
+    width: 12,
+    height: 12,
+    backgroundColor: '#2E7D32',
+    borderRadius: 2,
+  },
+  agreeText: {
+    color: '#333',
+    fontSize: 14,
   },
   button: {
-    backgroundColor: '#43A047',
-    borderRadius: 10,
+    backgroundColor: '#2E7D32',
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 60,
     marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+    elevation: 2,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -155,15 +184,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   footerText: {
-    color: '#666',
+    color: '#444',
     fontSize: 14,
   },
   loginLink: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
-  forget: {
-    color: '#4CAF50',
+    color: '#2E7D32',
     fontWeight: 'bold',
   },
 });

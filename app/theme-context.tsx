@@ -56,23 +56,30 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const startRipple = (x: number, y: number) => {
-    rippleX.setValue(x);
-    rippleY.setValue(y);
-    ripple.setValue(0);
+  rippleX.setValue(x);
+  rippleY.setValue(y);
+  ripple.setValue(0);
 
-    Animated.timing(ripple, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: false,
-    }).start(() => {
-      setIsDarkMode(prev => !prev);
+  Animated.timing(ripple, {
+    toValue: 1,
+    duration: 400,
+    useNativeDriver: false,
+  }).start(() => {
+    // Toggle isDarkMode and get new value
+    setIsDarkMode((prev) => {
+      const newMode = !prev;
+      
+      // Animate based on newMode
       Animated.timing(animation, {
-        toValue: isDarkMode ? 0 : 1,
+        toValue: newMode ? 1 : 0,
         duration: 200,
         useNativeDriver: false,
       }).start();
+
+      return newMode;
     });
-  };
+  });
+};
 
   const toggleTheme = (x: number, y: number) => {
     startRipple(x, y);

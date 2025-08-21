@@ -9,15 +9,43 @@ import {
   Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../theme-context';
 import { onAuthStateChanged } from 'firebase/auth';
-import { onValue, ref } from 'firebase/database';
+import { onValue, ref, off } from 'firebase/database';
 import { auth, database } from '../../firebase/firebaseConfig';
 
-const HomeScreen = () => {
+// Types outside component
+type FeaturedDestination = {
+  title?: string;
+  subtitle?: string;
+  id?: string;
+  imageUrl?: string;
+  image: string;
+  Name: string;
+  Location: string;
+};
+
+type Trip = {
+  id: string;
+  category: string;
+  createdAt: string;
+  dates: {
+    start: string;
+    end: string;
+  };
+  icon: string;
+  name: string;
+};
+
+type Recommendation = {
+  title: string;
+  desc: string;
+  imageUrl: string;
+};
+
+const HomeScreen: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname();
   const {
     isDarkMode,
     toggleTheme,
@@ -26,9 +54,15 @@ const HomeScreen = () => {
     startRipple,
   } = useTheme();
 
+  const [featuredDestinations, setFeaturedDestinations] = useState<FeaturedDestination[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [userName, setUserName] = useState('');
   const [greeting, setGreeting] = useState('');
+  const [exploreLocations, setExploreLocations] = useState<FeaturedDestination[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [userIdKey, setUserIdKey] = useState<string | null>(null);
 
+  // Greeting helper
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -36,170 +70,233 @@ const HomeScreen = () => {
     return 'Good Evening';
   };
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      router.replace('/firstpage');
-    } else {
-      setGreeting(getGreeting());
+  // Load exploreLocations from database once
+  useEffect(() => {
+    const allLocationsRef = ref(database, 'locations');
+    const listener = onValue(allLocationsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Filter out featuredDestinations and recommendations if present
+        const allKeys = Object.keys(data).filter(
+          (key) => key !== 'featuredDestinations' && key !== 'recommendations'
+        );
+        const exploreList = allKeys.map((key) => data[key]);
+        setExploreLocations(exploreList);
+      }
+    });
+    return () => off(allLocationsRef, 'value', listener);
+  }, []);
 
-      const emailKey = user.email?.replace(/\./g, '_'); // sanitize email
-      if (!emailKey) return;
+  // Auth listener + load user info, featured, recommendations + set userIdKey for trips
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace('/firstpage');
+      } else {
+        setGreeting(getGreeting());
+        const emailKey = user.email?.replace(/\./g, '_') || null;
+        const userId = user.uid;
+        setUserIdKey(userId);
 
-      const userRef = ref(database, `users/${emailKey}`);
+        // User data
+        const userRef = ref(database, `users/${emailKey}`);
+        onValue(userRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data?.name) {
+            setUserName(data.name);
+          }
+        });
 
-      onValue(userRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data?.name) {
-          setUserName(data.name);
-        } else {
-          console.log('No user name found for:', emailKey);
-        }
-      });
-    }
-  });
+        // Featured destinations & recommendations come from the same 'locations' path
+        const locationsRef = ref(database, 'locations');
+        onValue(locationsRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            // Assuming featuredDestinations and recommendations are nested keys
+            setFeaturedDestinations(
+              data.featuredDestinations ? Object.values(data.featuredDestinations) as FeaturedDestination[] : []
+            );
+            setRecommendations(
+              data.recommendations ? Object.values(data.recommendations) as Recommendation[] : []
+            );
+          }
+        });
+      }
+    });
 
-  return () => unsubscribe();
-}, []);
+    return () => unsubscribe();
+  }, [router]);
 
+  // Fetch trips for logged-in user dynamically from Firebase
+  useEffect(() => {
+    if (!userIdKey) return;
+
+    const tripsRef = ref(database, `trips/userTrips/${userIdKey}`);
+
+    const tripsListener = onValue(tripsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const tripList: Trip[] = Object.entries(data).map(([key, value]: [string, any]) => ({
+          id: key,
+          category: value.category,
+          createdAt: value.createdAt,
+          dates: value.dates,
+          icon: value.icon,
+          name: value.name,
+        }));
+        setTrips(tripList);
+      } else {
+        setTrips([]);
+      }
+    });
+
+    return () => off(tripsRef, 'value', tripsListener);
+  }, [userIdKey]);
+
+  const quickActions = [
+    { label: 'Plan Trip', icon: 'navigate-outline', route: '/trips' },
+    { label: 'Explore', icon: 'accessibility-outline', route: '/explore' },
+    { label: 'Expenses', icon: 'wallet-outline', route: '/expenses' },
+    { label: 'Community', icon: 'people-outline', route: '/community' },
+  ];
 
   return (
     <Animated.View style={[styles.container, { backgroundColor }]}>
       <Animated.View style={rippleStyle} pointerEvents="none" />
-
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        
         <View style={styles.header}>
-  <TouchableOpacity
-    style={{ flexDirection: 'row', alignItems: 'center' }}
-    onPress={() => router.push('/profile')}
-  >
-    <Image
-      source={require('../../assets/images/avatar.png')}
-      style={styles.avatar}
-    />
-    <View>
-      <Text style={[styles.greeting, isDarkMode && { color: '#aaa' }]}>
-        {greeting}
-      </Text>
-      <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
-        {userName || 'Loading...'}
-      </Text>
-    </View>
-  </TouchableOpacity>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+            onPress={() => router.push('/profile' as any)}
+          >
+            <Image
+              source={require('../../assets/images/avatar.png')}
+              style={styles.avatar}
+            />
+            <View>
+              <Text style={[styles.greeting, isDarkMode && { color: '#aaa' }]}>
+                {greeting}
+              </Text>
+              <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>
+                {userName || 'Loading...'}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
-  <View style={styles.icons}>
-    <Icon
-      name="notifications-outline"
-      size={24}
-      color={isDarkMode ? '#fff' : '#333'}
-    />
-    <TouchableOpacity
-      onPress={(e) => {
-        const { locationX, locationY } = e.nativeEvent;
-        startRipple(locationX, locationY);
-      }}
-    >
-      <Icon
-        name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
-        size={24}
-        color={isDarkMode ? '#fff' : '#333'}
-        style={{ marginLeft: 16 }}
-      />
-    </TouchableOpacity>
-  </View>
-</View>
-
+          <View style={styles.icons}>
+            <Icon
+              name="notifications-outline"
+              size={24}
+              color={isDarkMode ? '#fff' : '#333'}
+            />
+            <TouchableOpacity
+              onPress={(e) => {
+                const { locationX, locationY } = e.nativeEvent;
+              
+                toggleTheme(0, 0);
+              }}
+            >
+              <Icon
+                name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
+                size={24}
+                color={isDarkMode ? '#fff' : '#333'}
+                style={{ marginLeft: 16 }}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.quickActions}>
-          {[
-            { label: 'Plan Trip', icon: 'navigate-outline' },
-            { label: 'Booking', icon: 'ticket-outline' },
-            { label: 'Expenses', icon: 'wallet-outline' },
-            { label: 'Save Places', icon: 'bookmark-outline' },
-          ].map((item, index) => (
-            <View key={index} style={styles.action}>
+          {quickActions.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.action}
+              onPress={() => router.push(item.route as any)}
+            >
               <View style={styles.iconCircle}>
                 <Icon name={item.icon} size={24} color="#F8F9EA" />
               </View>
               <Text style={[styles.actionLabel, isDarkMode && { color: '#eee' }]}>
                 {item.label}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
+        {/* Discover More Section */}
         <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
-          Featured Destinations
+          Discover More
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {[
-            {
-              title: 'Bali, Indonesia',
-              subtitle: 'Sun-kissed Beaches & Balinese Spirit',
-              image: require('../../assets/images/bali.png'),
-            },
-            {
-              title: 'Kathmandu, Nepal',
-              subtitle: 'Swayambhunath & Spiritual Serenity',
-              image: require('../../assets/images/kathmandu.png'),
-            },
-            {
-              title: 'Agra, India',
-              subtitle: 'Majestic Taj Mahal & Heritage',
-              image: require('../../assets/images/agra.png'),
-            },
-          ].map((item, index) => (
-            <View key={index} style={styles.card}>
-              <Image source={item.image} style={styles.cardImage} />
-              <Text style={[styles.cardTitle, isDarkMode && { color: '#fff' }]}>
-                {item.title}
-              </Text>
-              <Text style={[styles.cardSubtitle, isDarkMode && { color: '#aaa' }]}>
-                {item.subtitle}
-              </Text>
-            </View>
-          ))}
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+          style={{ marginVertical: 10 }}
+        >
+          {exploreLocations.length > 0 ? (
+            exploreLocations.map((location: FeaturedDestination, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.exploreCard,
+                  isDarkMode && { backgroundColor: '#1e1e1e' },
+                  { marginRight: 12 },
+                ]}
+                onPress={() => router.push(`/explore`)}
+              >
+                <Image
+                  source={{ uri: location.image }}
+                  style={styles.exploreImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.exploreText}>
+                  <Text style={[styles.exploreTitle, isDarkMode && { color: '#fff' }]}>
+                    {location.Name}
+                  </Text>
+                  <Text style={[styles.exploreSubtitle, isDarkMode && { color: '#aaa' }]}>
+                    {location.Location}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={{ color: isDarkMode ? '#eee' : '#333' }}>No locations found.</Text>
+          )}
         </ScrollView>
 
+        {/* Upcoming Trips Section */}
         <Text style={[styles.sectionTitle, isDarkMode && { color: '#eee' }]}>
-          Today’s Recommendations
+          Upcoming Trips
         </Text>
-        <View style={styles.recommendationContainer}>
-          {[
-            {
-              title: 'Swayambhunath',
-              desc: 'Ancient religious complex\nHilltop, surrounded by playful monkeys.',
-              image: require('../../assets/images/kathmandu.png'),
-            },
-            {
-              title: 'Patan Durbar Square',
-              desc: 'Rich history, Newari architecture, and UNESCO site',
-              image: require('../../assets/images/patan.png'),
-            },
-          ].map((item, index) => (
-            <View
-              key={index}
-              style={[
-                styles.recommendationCard,
-                isDarkMode && { backgroundColor: '#1e1e1e' },
-              ]}
-            >
-              <Image source={item.image} style={styles.recommendationImage} />
-              <View style={styles.recommendationText}>
-                <Text style={[styles.recommendationTitle, isDarkMode && { color: '#fff' }]}>
-                  {item.title}
+
+        <ScrollView
+          style={{ maxHeight: 300, paddingHorizontal: 20, marginBottom: 20 }}
+          showsVerticalScrollIndicator={true}
+        >
+          {trips.length > 0 ? (
+            trips.map((trip) => (
+              <View
+                key={trip.id}
+                style={[
+                  styles.tripCard,
+                  isDarkMode && { backgroundColor: '#1e1e1e' },
+                ]}
+              >
+                <Text style={[styles.tripLocations, isDarkMode && { color: '#fff' }]}>
+                  {trip.name}
                 </Text>
-                <Text style={[styles.recommendationDesc, isDarkMode && { color: '#aaa' }]}>
-                  {item.desc}
+                <Text style={[styles.tripDates, isDarkMode && { color: '#aaa' }]}>
+                  {trip.dates.start} - {trip.dates.end}
                 </Text>
-                <TouchableOpacity style={styles.activitiesButton}>
-                  <Text style={styles.activitiesText}>Activities</Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          ))}
-        </View>
+            ))
+          ) : (
+            <Text style={{ color: isDarkMode ? '#eee' : '#333' }}>
+              No trips planned.
+            </Text>
+          )}
+        </ScrollView>
       </ScrollView>
     </Animated.View>
   );
@@ -261,64 +358,43 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     color: '#37474F',
   },
-  card: {
-    width: 180,
-    marginLeft: 20,
-    marginBottom: 10,
+  exploreCard: {
+    width: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
   },
-  cardImage: {
+  exploreImage: {
     width: '100%',
-    height: 110,
-    borderRadius: 10,
+    height: 120,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
-  cardTitle: {
-    fontSize: 14,
+  exploreText: {
+    padding: 10,
+  },
+  exploreTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 6,
-    color: '#263238',
   },
-  cardSubtitle: {
-    fontSize: 12,
-    color: '#777',
+  exploreSubtitle: {
+    fontSize: 13,
+    color: '#666',
   },
-  recommendationContainer: {
-    paddingHorizontal: 20,
-  },
-  recommendationCard: {
-    flexDirection: 'row',
+  tripCard: {
     backgroundColor: '#fff3cd',
     borderRadius: 12,
-    marginBottom: 16,
-    overflow: 'hidden',
+    padding: 12,
+    marginBottom: 12,
   },
-  recommendationImage: {
-    width: 110,
-    height: 110,
-  },
-  recommendationText: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'center',
-  },
-  recommendationTitle: {
-    fontSize: 15,
+  tripLocations: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#263238',
   },
-  recommendationDesc: {
-    fontSize: 12,
+  tripDates: {
+    fontSize: 14,
     color: '#555',
-    marginVertical: 4,
-  },
-  activitiesButton: {
-    backgroundColor: '#43A047',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  activitiesText: {
-    fontSize: 12,
-    color: '#fff',
+    marginTop: 4,
   },
 });

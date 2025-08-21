@@ -16,7 +16,6 @@ import Register from '../register';
 
 
 
-
 export default function AppLayout() {
   const { isDarkMode } = useTheme();
   return (

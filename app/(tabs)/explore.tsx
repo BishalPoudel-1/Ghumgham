@@ -10,48 +10,174 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
 import { useTheme } from '../theme-context';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../../firebase/firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
+import * as Location from 'expo-location';
+
+type Place = {
+  Location: string;
+  Name: string;
+  category1: string;
+  category2: string;
+  description: string;
+  reviews: number;
+  image?: string;
+};
+
+type Places = {
+  [key: string]: Place;
+};
+
+type Categories = {
+  [categoryName: string]: {
+    locationIds: string[];
+  };
+};
 
 const ExploreScreen = () => {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
+
   const { isDarkMode } = useTheme();
-  const [places, setPlaces] = useState<any[]>([]);
+  const [places, setPlaces] = useState<Places>({});
+  const [categories, setCategories] = useState<Categories>({});
+  const [categoryList, setCategoryList] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [showNearby, setShowNearby] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const backgroundColor = isDarkMode ? '#121212' : '#FDFBEF';
   const cardColor = isDarkMode ? '#1e1e1e' : '#fff';
   const textColor = isDarkMode ? '#fff' : '#333';
   const subTextColor = isDarkMode ? '#aaa' : '#666';
-  const [selectedCategory, setSelectedCategory] = useState('All');
-const [locations, setLocations] = useState([]);
 
-  const categoryPaths: { [key: string]: string } = {
-  All: '', // Special case
-  Food: 'food',
-  Place: 'place',
-  Market: 'market',
-  Adventure: 'adventure',
-  Art: 'art',
-};
+  const [district, setDistrict] = useState('');
 
+  type LocationItem = {
+    id: string;
+    Location: string;
+    Name: string;
+    category1: string;
+    category2: string;
+    description: string;
+    image: string;
+    reviews: number;
+  };
+  const [nearbyLocations, setNearbyLocations] = useState<LocationItem[]>([]);
 
-
+  // Get district name from current location
   useEffect(() => {
-    const placesRef = ref(database, 'location'); 
-    const unsubscribe = onValue(placesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const loadedPlaces = Object.values(data);
-        setPlaces(loadedPlaces);
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
       }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10&addressdetails=1&accept-language=en`,
+          {
+            headers: {
+              'User-Agent': 'MyApp/1.0 (example@email.com)',
+              Accept: 'application/json',
+            },
+          }
+        );
+        const data = await response.json();
+
+        const districtName =
+          data.address?.county ||
+          data.address?.state_district ||
+          data.address?.state ||
+          'Unknown District';
+
+        setDistrict(districtName);
+        console.log('District:', districtName);
+      } catch (error) {
+        console.error('Error getting district:', error);
+      }
+    })();
+  }, []);
+
+  // Load nearby locations based on district
+  useEffect(() => {
+    if (!district) return;
+
+    const dbRef = ref(database, 'locations');
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      const matched: LocationItem[] = [];
+
+      for (let key in data) {
+        if (
+          data[key].Location &&
+          data[key].Location.toLowerCase().includes(district.toLowerCase())
+        ) {
+          matched.push({ id: key, ...data[key] });
+        }
+      }
+
+      setNearbyLocations(matched);
+      console.log('Nearby Locations:', matched);
+    });
+  }, [district]);
+
+  // Load all places and categories
+  useEffect(() => {
+    const placesRef = ref(database, 'locations');
+    const categoriesRef = ref(database, 'categories');
+
+    const unsubscribePlaces = onValue(placesRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setPlaces(data);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubscribeCategories = onValue(categoriesRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setCategories(data);
+      setCategoryList(['All', ...Object.keys(data)]);
+    });
+
+    return () => {
+      unsubscribePlaces();
+      unsubscribeCategories();
+    };
   }, []);
+
+  // Filter places by category and search text
+  const filteredPlaces = (): [string, Place][] => {
+    let filteredEntries: [string, Place][] = [];
+
+    if (selectedCategory === 'All') {
+      filteredEntries = Object.entries(places);
+    } else {
+      const ids = categories[selectedCategory]?.locationIds || [];
+      filteredEntries = ids
+        .map((id: string): [string, Place] => [id, places[id]])
+        .filter(([_, place]) => place !== undefined);
+    }
+
+    // Apply search filter on Name or Location (case-insensitive)
+    if (searchText.trim() !== '') {
+      const lowerSearch = searchText.toLowerCase();
+      filteredEntries = filteredEntries.filter(([_, place]) => {
+        if (!place) return false;
+        return (
+          place.Name.toLowerCase().includes(lowerSearch) ||
+          place.Location.toLowerCase().includes(lowerSearch)
+        );
+      });
+    }
+
+    return filteredEntries;
+  };
 
   return (
     <View style={[styles.wrapper, { backgroundColor }]}>
@@ -62,74 +188,129 @@ const [locations, setLocations] = useState([]);
           <TextInput
             placeholder="Search"
             placeholderTextColor={isDarkMode ? '#bbb' : '#888'}
-            style={[
-              styles.searchInput,
-              { color: textColor, backgroundColor: cardColor },
-            ]}
+            style={[styles.searchInput, { color: textColor, backgroundColor: cardColor }]}
+            value={searchText}
+            onChangeText={(text) => {
+              setSearchText(text);
+              setShowNearby(false); // Hide nearby when typing search
+            }}
           />
           <TouchableOpacity
-            style={[
-              styles.nearMeButton,
-              { backgroundColor: isDarkMode ? '#2e7d32' : '#E9F5EC' },
-            ]}
+            onPress={() => {
+              if (nearbyLocations.length === 0) {
+                alert('No locations found near you');
+                setShowNearby(false);
+              } else {
+                setShowNearby(true);
+                setSearchText(''); // Clear search when showing nearby
+                setSelectedCategory('All'); // Reset category when showing nearby
+              }
+            }}
+            style={[styles.nearMeButton, { backgroundColor: isDarkMode ? '#2e7d32' : '#E9F5EC' }]}
           >
-            <Icon name="location-outline" size={18} color={isDarkMode ? '#fff' : '#2e7d32'} />
+            <Icon
+              name="location-outline"
+              size={18}
+              color={isDarkMode ? '#fff' : '#2e7d32'}
+            />
             <Text style={[styles.nearMeText, { color: isDarkMode ? '#fff' : '#2e7d32' }]}>
               Near me
             </Text>
           </TouchableOpacity>
         </View>
 
-        
-
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-  {['All', 'Food', 'Place', 'Market', 'Adventure', 'Art'].map((item, index) => {
-    const isSelected = selectedCategory === item;
-    return (
-      <TouchableOpacity
-        key={index}
-        onPress={() => setSelectedCategory(item)}
-        style={[
-          styles.categoryButton,
-          { backgroundColor: isSelected ? 'teal' : cardColor }
-        ]}
-      >
-        <Text
-          style={[
-            styles.categoryText,
-            { color: isSelected ? 'white' : textColor }
-          ]}
-        >
-          {item}
-        </Text>
-      </TouchableOpacity>
-    );
-  })}
-</ScrollView>
-
+          {categoryList.map((item: string, index: number) => {
+            const isSelected = selectedCategory === item;
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  setSelectedCategory(item);
+                  setShowNearby(false); // Hide nearby when switching category
+                  setSearchText(''); // Clear search when changing category
+                }}
+                style={[
+                  styles.categoryButton,
+                  {
+                    backgroundColor: isSelected ? 'teal' : cardColor,
+                    borderColor: isSelected ? 'teal' : '#ccc',
+                  },
+                ]}
+              >
+                <Text style={[styles.categoryText, { color: isSelected ? '#fff' : textColor }]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         <Text style={[styles.sectionTitle, { color: textColor }]}>Featured Places</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color="#43A047" />
+        ) : showNearby ? (
+          nearbyLocations.length === 0 ? (
+            <Text style={{ color: subTextColor }}>No nearby locations found.</Text>
+          ) : (
+            nearbyLocations.map((place) => (
+              <TouchableOpacity
+                key={place.id}
+                style={[styles.card, { backgroundColor: cardColor }]}
+                onPress={() => navigation.navigate('explore_each', { placeId: place.id })}
+              >
+                <Image
+                  source={
+                    place.image
+                      ? { uri: place.image }
+                      : require('../../assets/images/garden-of-dreams.png')
+                  }
+                  style={styles.cardImage}
+                />
+                <View style={styles.cardContent}>
+                  <Text style={[styles.cardTitle, { color: textColor }]}>
+                    {place.Name || 'Unknown Place'}
+                  </Text>
+                  <Text style={[styles.cardSub, { color: subTextColor }]}>
+                    {place.category1 || ''}, {place.category2 || ''}
+                  </Text>
+                  <View style={styles.ratingRow}>
+                    <Icon name="star" color="#FFA000" size={16} />
+                    <Text style={[styles.rating, { color: textColor }]}>
+                      {place.reviews !== undefined ? place.reviews : 'N/A'}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )
         ) : (
-          places.map((place, index) => (
-            <TouchableOpacity key={index} style={[styles.card, { backgroundColor: cardColor }]}>
+          filteredPlaces().map(([id, place]: [string, Place]) => (
+            <TouchableOpacity
+              key={id}
+              style={[styles.card, { backgroundColor: cardColor }]}
+              onPress={() => navigation.navigate('explore_each', { placeId: id })}
+            >
               <Image
-                source={require('../../assets/images/garden-of-dreams.png')} // Replace with actual images later
+                source={
+                  place?.image
+                    ? { uri: place.image }
+                    : require('../../assets/images/garden-of-dreams.png')
+                }
                 style={styles.cardImage}
               />
               <View style={styles.cardContent}>
                 <Text style={[styles.cardTitle, { color: textColor }]}>
-                  {place.Name || 'Unknown Place'}
+                  {place?.Name || 'Unknown Place'}
                 </Text>
                 <Text style={[styles.cardSub, { color: subTextColor }]}>
-                  {place.category1}, {place.category2}
+                  {place?.category1 || ''}, {place?.category2 || ''}
                 </Text>
                 <View style={styles.ratingRow}>
                   <Icon name="star" color="#FFA000" size={16} />
                   <Text style={[styles.rating, { color: textColor }]}>
-                    {place.reviews || 'N/A'}
+                    {place?.reviews !== undefined ? place.reviews : 'N/A'}
                   </Text>
                 </View>
               </View>
@@ -167,7 +348,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     marginRight: 8,
-    borderColor: '#ccc',
     borderWidth: 1,
   },
   categoryText: { fontSize: 14 },

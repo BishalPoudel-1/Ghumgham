@@ -1,21 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Switch,
-  Alert,
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  Switch, Alert, ActivityIndicator, Animated, Easing,
+  Dimensions, Keyboard
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, {
+  Marker,
+  UrlTile,
+  Region,
+  PROVIDER_DEFAULT,
+  Polyline
+} from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Ionicons';
 import * as Location from 'expo-location';
-import { useTheme } from '../theme-context';
 
 const MapScreen = () => {
   const defaultRegion: Region = {
@@ -28,15 +25,19 @@ const MapScreen = () => {
   const [offline, setOffline] = useState(false);
   const [region, setRegion] = useState<Region>(defaultRegion);
   const [userLocation, setUserLocation] = useState<Region | null>(null);
+  const [searchedLocation, setSearchedLocation] = useState<Region | null>(null);
+  const [routeCoords, setRouteCoords] = useState<Array<{ latitude: number, longitude: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [showCheck, setShowCheck] = useState(false);
   const [showPulse, setShowPulse] = useState(false);
+  const [heading, setHeading] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [is3D, setIs3D] = useState(false);
+  const [isLocated, setIsLocated] = useState(false);
 
   const mapRef = useRef<MapView>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const { isDarkMode, toggleTheme } = useTheme();
-
   const window = Dimensions.get('window');
 
   useEffect(() => {
@@ -58,10 +59,7 @@ const MapScreen = () => {
 
       setUserLocation(coords);
       setRegion(coords);
-
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(coords, 1000);
-      }
+      mapRef.current?.animateToRegion(coords, 1000);
 
       setShowCheck(true);
       Animated.timing(fadeAnim, {
@@ -74,6 +72,10 @@ const MapScreen = () => {
         setShowCheck(false);
       });
     })();
+
+    Location.watchHeadingAsync((data) => {
+      setHeading(data.trueHeading ?? data.magHeading);
+    }).then(sub => () => sub.remove());
   }, []);
 
   const startPulse = () => {
@@ -85,9 +87,7 @@ const MapScreen = () => {
       duration: 1000,
       useNativeDriver: true,
       easing: Easing.out(Easing.circle),
-    }).start(() => {
-      setShowPulse(false);
-    });
+    }).start(() => setShowPulse(false));
   };
 
   const handleLocate = async () => {
@@ -106,23 +106,107 @@ const MapScreen = () => {
     };
 
     setUserLocation(coords);
-
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(coords, 1000);
-    }
-
+    mapRef.current?.animateToRegion(coords, 1000);
+    setIsLocated(true);
     startPulse();
   };
 
+  const handleSearchSubmit = async () => {
+    if (!searchQuery.trim()) {
+      Alert.alert('Please enter a location to search');
+      return;
+    }
+
+    try {
+      const results = await Location.geocodeAsync(searchQuery);
+      if (results.length === 0) {
+        Alert.alert('No location found', 'Try a different search term.');
+        return;
+      }
+
+      const place = results[0];
+      const newRegion: Region = {
+        latitude: place.latitude,
+        longitude: place.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      setRegion(newRegion);
+      setSearchedLocation(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 1000);
+      Keyboard.dismiss();
+      setSearchQuery('');
+
+      // ➕ Draw line from user to destination
+      if (userLocation) {
+        setRouteCoords([
+          { latitude: userLocation.latitude, longitude: userLocation.longitude },
+          { latitude: newRegion.latitude, longitude: newRegion.longitude },
+        ]);
+      }
+
+    } catch (error) {
+      Alert.alert('Error', 'Failed to search location');
+      console.error(error);
+    }
+  };
+
+  const handleResetNorth = () => {
+    mapRef.current?.animateCamera({ heading: 0 }, { duration: 500 });
+  };
+
+  const handleTilt = () => {
+    setIs3D((prev) => {
+      const newTilt = !prev;
+      mapRef.current?.animateCamera({ pitch: newTilt ? 45 : 0 }, { duration: 1000 });
+      return newTilt;
+    });
+  };
+
   return (
-    <View style={[styles.container, isDarkMode && { backgroundColor: '#121212' }]}>
+    <View style={styles.container}>
       <MapView
         ref={mapRef}
+        provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFillObject}
         region={region}
-        showsUserLocation={true}
+        showsUserLocation={false}
+        rotateEnabled
+        showsCompass
       >
-        {userLocation && <Marker coordinate={userLocation} title="You are here" />}
+        {offline && (
+          <UrlTile
+            urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maximumZ={19}
+          />
+        )}
+
+        {userLocation && heading !== null && (
+          <Marker.Animated
+            coordinate={{
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            }}
+            rotation={heading}
+            flat
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <Icon name="navigate" size={30} color="#43A047" />
+          </Marker.Animated>
+        )}
+
+        {searchedLocation && (
+          <Marker coordinate={searchedLocation} title="Search Result" pinColor="#f44336" />
+        )}
+
+        {routeCoords.length === 2 && (
+          <Polyline
+            coordinates={routeCoords}
+            strokeWidth={4}
+            strokeColor="#43A047"
+          />
+        )}
       </MapView>
 
       {userLocation && showPulse && (
@@ -154,24 +238,24 @@ const MapScreen = () => {
           {!showCheck ? (
             <>
               <ActivityIndicator size="large" color="#43A047" />
-              <Text style={{ marginTop: 10, color: isDarkMode ? '#fff' : '#000' }}>Fetching your location...</Text>
+              <Text style={{ marginTop: 10 }}>Fetching your location...</Text>
             </>
           ) : (
             <>
               <Icon name="checkmark-circle-outline" size={40} color="#43A047" />
-              <Text style={{ marginTop: 10, color: isDarkMode ? '#fff' : '#000' }}>Location fetched!</Text>
+              <Text style={{ marginTop: 10 }}>Location fetched!</Text>
             </>
           )}
         </Animated.View>
       )}
 
-      <View style={[styles.topBar, isDarkMode && { backgroundColor: '#1e1e1e' }]}>
+      <View style={styles.topBar}>
         <TouchableOpacity>
-          <Icon name="arrow-back" size={24} color={isDarkMode ? '#fff' : '#000'} />
+          <Icon name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#000' }]}>Navigation</Text>
+        <Text style={styles.title}>Navigation</Text>
         <View style={styles.toggleContainer}>
-          <Text style={{ fontSize: 12, color: isDarkMode ? '#fff' : '#000' }}>Offline Mode</Text>
+          <Text style={{ fontSize: 12 }}>Offline</Text>
           <Switch
             value={offline}
             onValueChange={() => setOffline(!offline)}
@@ -180,41 +264,41 @@ const MapScreen = () => {
         </View>
       </View>
 
-      <View style={[styles.transportMode, isDarkMode && { backgroundColor: '#333' }]}>
-        <Icon name="walk" size={22} color="#43A047" style={styles.iconSpacing} />
-        <Icon name="bicycle" size={22} color="#43A047" style={styles.iconSpacing} />
-        <Icon name="bus" size={22} color="#43A047" />
+      <View style={styles.transportMode}>
+        <TouchableOpacity onPress={handleLocate}>
+          <Icon name="navigate-circle" size={24} color={isLocated ? '#43A047' : '#333'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleResetNorth}>
+          <Icon name="compass" size={22} color="#333" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleTilt}>
+          <Text style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: is3D ? '#43A047' : '#333'
+          }}>3D</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.mapTools}>
-        <TouchableOpacity style={[styles.toolButton, isDarkMode && { backgroundColor: '#444' }]} onPress={handleLocate}>
-          <Icon name="locate" size={20} color={isDarkMode ? '#fff' : '#000'} />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.toolButton, isDarkMode && { backgroundColor: '#444' }]}>
-          <Icon name="compass" size={20} color={isDarkMode ? '#fff' : '#000'} />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={[styles.downloadButton, isDarkMode && { backgroundColor: '#333' }]}>
-        <Icon name="download" size={16} color="#43A047" />
-        <Text style={[styles.downloadText, isDarkMode && { color: '#fff' }]}>Download Region</Text>
-      </TouchableOpacity>
-
-      <View style={[styles.bottomBar, isDarkMode && { backgroundColor: '#1e1e1e' }]}>
+      <View style={styles.bottomBar}>
         <View style={styles.searchSection}>
-          <Icon name="menu" size={24} color="#43A047" />
+          <Icon name="search" size={24} color="#43A047" />
           <TextInput
-            style={[styles.input, { color: isDarkMode ? '#fff' : '#000' }]}
+            style={styles.input}
             placeholder="Search Your Destination"
-            placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
           />
-          <Icon name="mic" size={22} color="#43A047" />
-        </View>
-        <View style={styles.bottomTabs}>
-          <TouchableOpacity style={styles.tab}>
-            <Icon name="bookmark" size={20} color={isDarkMode ? '#fff' : '#333'} />
-            <Text style={[styles.tabText, isDarkMode && { color: '#fff' }]}>Saved Places</Text>
-          </TouchableOpacity>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Icon name="close-circle" size={22} color="#43A047" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -261,8 +345,8 @@ const styles = StyleSheet.create({
   toggleContainer: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   transportMode: {
     position: 'absolute',
-    width: 40,
-    height: 160,
+    width: 50,
+    height: 130,
     top: 130,
     left: 20,
     backgroundColor: '#fff',
@@ -271,39 +355,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     elevation: 4,
-  },
-  iconSpacing: { marginBottom: 16 },
-  mapTools: {
-    position: 'absolute',
-    top: 130,
-    right: 20,
-    gap: 12,
-  },
-  toolButton: {
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    padding: 10,
-    elevation: 3,
-  },
-  downloadButton: {
-    position: 'absolute',
-    bottom: 90,
-    right: 30,
-    width:130,
-    height:40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    elevation: 3,
-  },
-  downloadText: {
-    marginLeft: 6,
-    color: '#43A047',
-    fontWeight: '600',
-    fontSize: 12,
   },
   bottomBar: {
     position: 'absolute',
@@ -321,22 +372,8 @@ const styles = StyleSheet.create({
   searchSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1.6,
+    flex: 1,
     gap: 10,
   },
   input: { flex: 1, fontSize: 14, color: '#000' },
-  bottomTabs: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  tab: { alignItems: 'center' },
-  tabText: { fontSize: 12, color: '#555', marginTop: 4 },
-  tabTextActive: {
-    fontSize: 12,
-    color: '#43A047',
-    marginTop: 4,
-    fontWeight: '600',
-  },
 });

@@ -23,11 +23,12 @@ interface UserData {
   countryCount?: number;
   countriesVisited?: number;
   citiesVisited?: number;
-  reviewsWritten?: number;
+  reviews?: string;
+  traveller_type?: string;
 }
 
 export default function Profile() {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode,toggleTheme } = useTheme();
  const [userData, setUserData] = useState<UserData>({
   name: '',
   email: '',
@@ -38,7 +39,8 @@ export default function Profile() {
   countryCount: 0,
   countriesVisited: 0,
   citiesVisited: 0,
-  reviewsWritten: 0,
+  reviews: '',
+  traveller_type: '',
 });
 const router = useRouter();
 
@@ -64,7 +66,8 @@ const router = useRouter();
       countryCount: user.countryCount || 0,
       countriesVisited: user.countriesVisited || 0,
       citiesVisited: user.citiesVisited || 0,
-      reviewsWritten: user.reviewsWritten || 0,
+      reviews: user.reviews || '',
+      traveller_type: user. traveller_type || '',
     });
     })
     .catch((error) => {
@@ -98,7 +101,7 @@ const router = useRouter();
             {userData.name || 'Loading...'}
           </Text>
           <Text style={[styles.subtitle, { color: subTextColor }]}>
-            Solo Traveler | 5 Countries
+             {userData.traveller_type || 'Loading...'}
           </Text>
         </View>
 
@@ -137,17 +140,14 @@ const router = useRouter();
           <Text style={[styles.sectionTitle, { color: textColor }]}>Travel Stats</Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>5</Text>
+              <Text style={styles.statNumber}> {userData.countriesVisited ?? 'Loading...'}</Text>
               <Text style={[styles.statLabel, { color: textColor }]}>Countries</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>25</Text>
+              <Text style={styles.statNumber}>{userData.citiesVisited ?? 'Loading...'}</Text>
               <Text style={[styles.statLabel, { color: textColor }]}>Cities</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>75</Text>
-              <Text style={[styles.statLabel, { color: textColor }]}>Reviews</Text>
-            </View>
+            
           </View>
         </View>
   </View>
@@ -170,13 +170,18 @@ const router = useRouter();
       <Text style={[styles.settingText, { color: textColor }]}>Edit Profile</Text>
     </TouchableOpacity>
 
-    <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Change Password')}>
+    <TouchableOpacity style={styles.settingItem} onPress={() =>  router.push('../update_password')}>
       <Text style={[styles.settingText, { color: textColor }]}>Change Password</Text>
     </TouchableOpacity>
 
-    <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Dark Mode Toggle')}>
-      <Text style={[styles.settingText, { color: textColor }]}>Toggle Dark Mode</Text>
-    </TouchableOpacity>
+    <TouchableOpacity
+  style={styles.settingItem}
+  onPress={() => toggleTheme(0, 0)} // Provide dummy values if (x, y) aren't used
+>
+  <Text style={[styles.settingText, { color: textColor }]}>
+    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+  </Text>
+</TouchableOpacity>
 
     <TouchableOpacity style={styles.settingItem} onPress={() => console.log('Change Language')}>
       <Text style={[styles.settingText, { color: textColor }]}>Language</Text>
@@ -199,11 +204,6 @@ const router = useRouter();
   </View>
 )}
 
-
-
-  
-
-        
       </ScrollView>
     </SafeAreaView>
     

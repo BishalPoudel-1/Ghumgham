@@ -14,17 +14,21 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ref, update, onValue } from 'firebase/database';
+import { useNavigation } from '@react-navigation/native';
 import { auth, database } from '../../firebase/firebaseConfig';
+import { Picker } from '@react-native-picker/picker';
 
 const { width } = Dimensions.get('window');
 
 export default function EditProfile() {
+    const navigation = useNavigation();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('');
+  const [travellerType, setTravellerType] = useState('');
 
   const sanitizeEmail = (email: string) => email.toLowerCase().replace(/\./g, '_');
 
@@ -39,13 +43,14 @@ export default function EditProfile() {
           setName(data.name || '');
           setPhone(data.phone || '');
           setLocation(data.location || '');
+          setTravellerType(data.traveller_type || '');
         }
       });
     }
   }, []);
 
   const handleUpdate = async () => {
-    if (!name || !phone || !location) {
+    if (!name || !phone || !location || !travellerType) {
       Alert.alert('Missing Fields', 'Please fill in all fields.');
       return;
     }
@@ -59,6 +64,7 @@ export default function EditProfile() {
           name,
           phone,
           location,
+          traveller_type: travellerType,
         };
 
         await update(ref(database, `users/${safeKey}`), updates);
@@ -74,8 +80,16 @@ export default function EditProfile() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+   <SafeAreaView style={styles.safeArea}>
+  <ScrollView contentContainerStyle={styles.container}>
+    
+    <View style={styles.header}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color="#263238" />
+      </TouchableOpacity>
+      <Text style={styles.title}>Change Password</Text>
+    </View>
+
         <Text style={styles.title}>Edit Profile</Text>
 
         <View style={styles.inputContainer}>
@@ -109,6 +123,20 @@ export default function EditProfile() {
           />
         </View>
 
+        <View style={styles.pickerContainer}>
+          <Ionicons name="walk-outline" size={20} color="#43A047" style={styles.icon} />
+          <Picker
+            selectedValue={travellerType}
+            style={styles.picker}
+            onValueChange={(itemValue) => setTravellerType(itemValue)}
+          >
+            <Picker.Item label="Select Traveller Type" value="" />
+            <Picker.Item label="Solo Traveller" value="solo traveller" />
+            <Picker.Item label="Group Traveller" value="group traveller" />
+            <Picker.Item label="Couple Traveller" value="couple traveller" />
+          </Picker>
+        </View>
+
         <TouchableOpacity
           style={[styles.button, { opacity: !loading ? 1 : 0.5 }]}
           disabled={loading}
@@ -135,6 +163,15 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 20,
   },
+    header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 4,
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -150,6 +187,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     width: '100%',
   },
+  pickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0DC',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+    width: '100%',
+  },
   icon: {
     marginRight: 8,
   },
@@ -157,6 +203,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
+  },
+  picker: {
+    flex: 1,
+    height: 50,
   },
   button: {
     backgroundColor: '#43A047',

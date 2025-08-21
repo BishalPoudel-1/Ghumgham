@@ -1,201 +1,278 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { PieChart } from 'react-native-chart-kit';
-import Icon from 'react-native-vector-icons/Ionicons';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useTheme } from '../theme-context';
+import { onValue, ref, off } from 'firebase/database';
+import { database } from '../../firebase/firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebase/firebaseConfig';
 
-const screenWidth = Dimensions.get('window').width;
-
-export default function ExpensesManagerScreen() {
-  const { isDarkMode } = useTheme();
-
-  const data = [
-    { name: 'Food', population: 35, color: '#388E3C', legendFontColor: '#333', legendFontSize: 13 },
-    { name: 'Travel', population: 25, color: '#FBC02D', legendFontColor: '#333', legendFontSize: 13 },
-    { name: 'Shopping', population: 20, color: '#37474F', legendFontColor: '#333', legendFontSize: 13 },
-    { name: 'Others', population: 20, color: '#D32F2F', legendFontColor: '#333', legendFontSize: 13 },
-  ];
-
-  const backgroundColor = isDarkMode ? '#121212' : '#F8F9EA';
-  const cardBackground = isDarkMode ? '#1e1e1e' : '#FFF3C4';
-  const textColor = isDarkMode ? '#fff' : '#263238';
-  const subTextColor = isDarkMode ? '#aaa' : '#757575';
-
-  return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.header, { color: textColor }]}>Expenses Manager</Text>
-
-      <View style={[styles.summaryCard, { backgroundColor: cardBackground }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.label, { color: textColor }]}>Total Cost</Text>
-          <Text style={[styles.amount, { color: textColor }]}>Rs 2,00,000</Text>
-          <Text style={[styles.tour, { color: subTextColor }]}>Kathmandu Tour</Text>
-        </View>
-        <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.label, { color: textColor }]}>Persons</Text>
-          <Icon name="people" size={24} color="#2E7D32" />
-          <TouchableOpacity style={styles.splitBtn}>
-            <Text style={styles.splitText}>Split Bill</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <Text style={[styles.subHeader, { color: textColor }]}>Expenses Breakdown</Text>
-      <Text style={[styles.tourRight, { color: subTextColor }]}>Kathmandu Tour</Text>
-
-      <View style={{ alignItems: 'center', marginTop: -10 }}>
-        <PieChart
-          data={data}
-          width={screenWidth}
-          height={170}
-          chartConfig={{
-            color: () => (isDarkMode ? '#fff' : '#000'),
-          }}
-          accessor="population"
-          backgroundColor="transparent"
-          hasLegend={false}
-          paddingLeft="15"
-          center={[0, 0]}
-          absolute
-        />
-        <View style={styles.totalOverlay}>
-          <Text style={styles.totalText}>Total</Text>
-          <Text style={styles.totalAmount}>Rs 2,00,000</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity style={[styles.exportBtn, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-        <Icon name="document-outline" size={16} color="#D32F2F" />
-        <Text style={styles.exportText}>Export</Text>
-      </TouchableOpacity>
-
-      <View style={styles.legendContainer}>
-        <LegendItem label="Food" color="#388E3C" percent="(35%)" textColor={textColor} />
-        <LegendItem label="Travels" color="#FBC02D" percent="(25%)" textColor={textColor} />
-        <LegendItem label="Shoppings" color="#37474F" percent="(20%)" textColor={textColor} />
-        <LegendItem label="Others" color="#D32F2F" percent="(20%)" textColor={textColor} />
-      </View>
-    </View>
-  );
-}
-
-type LegendItemProps = {
-  label: string;
-  color: string;
-  percent: string;
-  textColor: string;
+type RootStackParamList = {
+  ExpenseScreen: undefined;
+  addexpense: { groupId: string; members: Record<string, string> };
 };
 
-const LegendItem = ({ label, color, percent, textColor }: LegendItemProps) => (
-  <View style={styles.legendItem}>
-    <View style={[styles.dot, { backgroundColor: color }]} />
-    <Text style={[styles.legendText, { color: textColor }]}>
-      {label} <Text style={{ color: '#777' }}>{percent}</Text>
-    </Text>
-  </View>
-);
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ExpenseScreen'>;
+
+type Expense = {
+  id?: string;
+  title: string;
+  amount: number;
+  category: string;
+  paidBy: string;
+  splitDetail: Record<string, number>;
+  timestamp: number;
+};
+
+type Members = Record<string, string>;
+
+type GroupExpenses = {
+  groupId: string;
+  members: Members;
+  expenses: Expense[];
+};
+
+const ExpenseScreen: React.FC = () => {
+  const [groupExpenses, setGroupExpenses] = useState<GroupExpenses[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { isDarkMode } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
+
+ 
+  useEffect(() => {
+  console.log('Setting up auth state listener');
+  const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    
+    if (user) {
+       const emailKey = user.email?.replace(/\./g, '_') || null;
+
+          const userRef = ref(database, `users/${emailKey}`);
+          onValue(userRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data?.name) {
+              setCurrentUserId(data.name);
+            }
+          });
+      
+    } else {
+      console.log('User logged out or not authenticated');
+      setCurrentUserId(null);
+      setGroupExpenses([]); // Clear on logout
+    }
+  });
+
+  return () => {
+    console.log('Cleaning up auth listener');
+    unsubscribeAuth();
+  };
+}, []);
+
+useEffect(() => {
+  if (!currentUserId) {
+    console.log('No current user ID, skipping group fetch');
+    return;
+  }
+
+  console.log('Fetching groups for user:', currentUserId);
+  const groupsRef = ref(database, 'expenseManager');
+
+  const unsubscribeGroups = onValue(groupsRef, (snapshot) => {
+    const data = snapshot.val();
+    console.log('Groups data from DB:', data);
+
+    if (!data) {
+      console.log('No groups found in DB');
+      setGroupExpenses([]);
+      return;
+    }
+
+    const groupsArray: GroupExpenses[] = [];
+
+    Object.entries(data).forEach(([groupId, groupData]) => {
+      const members = (groupData as any).members as Members;
+      console.log(`Checking group ${groupId} members:`, members);
+
+      if (members && Object.values(members).includes(currentUserId)) {
+        console.log(`User ${currentUserId} is in group ${groupId}`);
+
+        const expensesData = (groupData as any).expenses || {};
+        const expenses: Expense[] = Object.entries(expensesData).map(([id, exp]) => ({
+          id,
+          ...(exp as Expense),
+        }));
+
+        expenses.sort((a, b) => b.timestamp - a.timestamp);
+        console.log(`Group ${groupId} expenses:`, expenses);
+
+        groupsArray.push({
+          groupId,
+          members,
+          expenses,
+        });
+      }
+    });
+
+    console.log('Groups after filtering for current user:', groupsArray);
+    setGroupExpenses(groupsArray);
+  });
+
+  return () => {
+    console.log('Cleaning up groups listener');
+    unsubscribeGroups();
+  };
+}, [currentUserId]);
+
+  const textColor = isDarkMode ? '#fff' : '#222';
+  const cardBackground = isDarkMode ? '#1e1e1e' : '#fff';
+  const containerBg = isDarkMode ? '#121212' : '#F8F9EA';
+
+  const getUserName = (members: Members, uid: string) => members[uid] ?? uid;
+
+  const total = groupExpenses.reduce((sumGroup, group) => {
+    return sumGroup + group.expenses.reduce((sum, e) => sum + e.amount, 0);
+  }, 0);
+
+  return (
+    <View style={[styles.container, { backgroundColor: containerBg }]}>
+      <Text style={[styles.header, { color: textColor }]}>Group Expenses</Text>
+      <Text style={[styles.total, { color: textColor }]}>Total: NPR {total}</Text>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        {groupExpenses.length === 0 && (
+          <Text style={{ color: textColor, textAlign: 'center', marginTop: 20 }}>
+            No expenses found for your groups. Add some!
+          </Text>
+        )}
+
+        {groupExpenses.map(({ groupId, members, expenses }) => (
+          <View key={groupId} style={{ marginBottom: 24 }}>
+            <Text style={[styles.groupTitle, { color: textColor }]}>Group: {groupId}</Text>
+            {expenses.length === 0 ? (
+              <Text style={{ color: textColor, fontStyle: 'italic', marginBottom: 12 }}>
+                No expenses in this group yet.
+              </Text>
+            ) : (
+              expenses.map((exp) => (
+                <View key={exp.id} style={[styles.card, { backgroundColor: cardBackground }]}>
+                  <Text style={[styles.title, { color: textColor }]}>{exp.title}</Text>
+                  <Text style={{ color: textColor, marginBottom: 4 }}>Category: {exp.category}</Text>
+                  <Text style={{ color: textColor }}>Amount: NPR {exp.amount}</Text>
+                  <Text style={{ color: textColor }}>
+                    Paid By: <Text style={{ fontWeight: '600' }}>{getUserName(members, exp.paidBy)}</Text>
+                  </Text>
+                  <Text style={{ color: textColor, marginTop: 8, fontWeight: '600' }}>Split Details:</Text>
+                  {Object.entries(exp.splitDetail).map(([uid, amount]) => (
+                    <Text key={uid} style={{ color: textColor, marginLeft: 8 }}>
+                      {getUserName(members, uid)}: NPR {amount}
+                    </Text>
+                  ))}
+                  <Text style={{ color: textColor, marginTop: 8, fontStyle: 'italic' }}>
+                    Date: {new Date(exp.timestamp).toLocaleString()}
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: '#007AFF' }]}
+                      onPress={() => Alert.alert('Edit Expense', `Edit ${exp.title} coming soon!`)}
+                    >
+                      <Text style={styles.buttonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: '#FF3B30', marginLeft: 10 }]}
+                      onPress={() => Alert.alert('Delete Expense', `Delete ${exp.title} coming soon!`)}
+                    >
+                      <Text style={styles.buttonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        ))}
+      </ScrollView>
+
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => {
+          if (groupExpenses.length > 0) {
+            navigation.navigate('addexpense', {
+              groupId: groupExpenses[0].groupId,
+              members: groupExpenses[0].members,
+            });
+          } else {
+            Alert.alert('No Group', 'You are not part of any group yet.');
+          }
+        }}
+      >
+        <Text style={styles.addButtonText}>+ Add Expense</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+export default ExpenseScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 30,
   },
   header: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: 'bold',
-    paddingHorizontal: 20,
+    marginBottom: 10,
   },
-  summaryCard: {
-    borderRadius: 16,
-    margin: 20,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  total: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
+  groupTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
   },
-  amount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 4,
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 2,
   },
-  tour: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  splitBtn: {
-    marginTop: 8,
-    backgroundColor: '#43A047',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
-  splitText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  subHeader: {
+  title: {
     fontSize: 18,
     fontWeight: '600',
-    paddingHorizontal: 20,
-    marginTop: 10,
   },
-  tourRight: {
-    fontSize: 12,
-    textAlign: 'right',
-    marginRight: 20,
-    marginTop: -5,
-  },
-  totalOverlay: {
-    position: 'absolute',
-    top: 55,
-    alignItems: 'center',
-    left: 81,
-  },
-  totalText: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#ffffff',
-  },
-  totalAmount: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  exportBtn: {
-    flexDirection: 'row',
-    alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: '#43A047',
+  button: {
     paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignItems: 'center',
-    marginTop: -5,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
-  exportText: {
-    marginLeft: 6,
-    color: '#43A047',
+  buttonText: {
+    color: '#fff',
     fontWeight: '600',
   },
-  legendContainer: {
-    marginTop: 20,
-    paddingHorizontal: 30,
+  addButton: {
+    position: 'absolute',
+    bottom: 25,
+    right: 25,
+    backgroundColor: '#007AFF',
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    elevation: 5,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 6,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  legendText: {
-    fontSize: 14,
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

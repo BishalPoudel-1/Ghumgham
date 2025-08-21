@@ -29,6 +29,7 @@ export const getCurrentUser = () => {
   });
 };
 
+
 export const logoutUser = () => {
   return signOut(auth);
 };

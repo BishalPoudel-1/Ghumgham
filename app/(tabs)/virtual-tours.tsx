@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import { useTheme } from '../theme-context';
 
 export default function VirtualTourScreen() {
   const { isDarkMode } = useTheme();
-
+  const router = useRouter();
   const tours = [
     {
       title: 'Garden of Dreams',
@@ -69,7 +70,7 @@ export default function VirtualTourScreen() {
                 <Text style={[styles.rating, { color: textColor }]}>{item.rating}</Text>
               </View>
               <Text style={[styles.description, { color: subTextColor }]}>{item.description}</Text>
-              <TouchableOpacity style={styles.viewBtn}>
+              <TouchableOpacity style={styles.viewBtn}  onPress={() => router.push('../FeatureInProgressScreen')}>
                 <Icon name="glasses-outline" size={16} color="#2E7D32" />
                 <Text style={styles.viewText}>View Now</Text>
               </TouchableOpacity>

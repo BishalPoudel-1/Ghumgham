@@ -1,8 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React ,{ useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image,Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme-context';
+import { getCachedWeather } from './WeatherFetcher';
+import { fetchAndCacheWeather } from './WeatherFetcher';
+
+import * as Location from 'expo-location';
 
 export default function SafetyEmergencyScreen() {
   const router = useRouter();
@@ -12,20 +16,55 @@ export default function SafetyEmergencyScreen() {
   const cardColor = isDarkMode ? '#1e1e1e' : '#FFF3C4';
   const cardText = isDarkMode ? '#fff' : '#37474F';
   const subText = isDarkMode ? '#aaa' : '#757575';
+ const [weather, setweather] = useState<any>(null);
+
+useEffect(() => {
+  (async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('Permission to access location was denied');
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
+    await fetchAndCacheWeather(latitude, longitude);
+  })();
+}, []);
+
+ 
+  useEffect(() => {
+    const loadWeather = async () => {
+      const data = await getCachedWeather();
+      setweather(data);
+    };
+    loadWeather();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.header, { color: cardText }]}>Safety & Emergency</Text>
 
-      {/* Weather Info */}
-      <View style={styles.section}>
-        <Text style={[styles.subHeader, { color: cardText }]}>Current Weather</Text>
-        <Text style={[styles.location, { color: subText }]}>Kathmandu, Nepal</Text>
-        <View style={styles.weatherRow}>
-          <Icon name="cloud-outline" size={30} color="#388E3C" />
-          <Text style={styles.weatherText}>24°C</Text>
-        </View>
+    {/* Weather Info */}
+<View style={styles.section}>
+  <Text style={[styles.subHeader, { color: cardText }]}>Current Weather</Text>
+  {weather ? (
+    <>
+      <Text style={[styles.location, { color: subText }]}>
+        {weather?.city ?? 'Unknown location'}
+      </Text>
+      <View style={styles.weatherRow}>
+        <Icon name="cloud-outline" size={30} color="#388E3C" />
+        <Text style={styles.weatherText}>
+          {weather?.temp != null ? `${weather.temp}°C` : 'N/A'}
+        </Text>
       </View>
+    </>
+  ) : (
+    <Text style={[styles.location, { color: subText }]}>Loading...</Text>
+  )}
+</View>
+
 
       {/* Hospital & Embassy Cards */}
       <View style={styles.cardRow}>
@@ -33,18 +72,25 @@ export default function SafetyEmergencyScreen() {
           <Icon name="business" size={40} color="#388E3C" />
           <Text style={[styles.cardTitle, { color: cardText }]}>Nearby Hospitals</Text>
           <Text style={[styles.cardSubText, { color: subText }]}>Find medical help</Text>
-          <TouchableOpacity style={styles.navigateBtn}>
-            <Text style={styles.navigateText}>
-              Navigate <Icon name="navigate" size={14} />
-            </Text>
-          </TouchableOpacity>
+         <TouchableOpacity 
+          style={styles.navigateBtn} 
+          onPress={() => router.push('/tourmap?search=hospital')}
+        >
+          <Text style={styles.navigateText}>
+            Navigate <Icon name="navigate" size={14} />
+          </Text>
+        </TouchableOpacity>
+      
         </View>
 
         <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
           <Icon name="business" size={40} color="#388E3C" />
           <Text style={[styles.cardTitle, { color: cardText }]}>Embassy Locator</Text>
           <Text style={[styles.cardSubText, { color: subText }]}>Find Your Embassy</Text>
-          <TouchableOpacity style={styles.navigateBtn}>
+          <TouchableOpacity 
+            style={styles.navigateBtn} 
+            onPress={() => router.push('/tourmap?search=embassy')}
+          >
             <Text style={styles.navigateText}>
               Navigate <Icon name="navigate" size={14} />
             </Text>
@@ -52,24 +98,36 @@ export default function SafetyEmergencyScreen() {
         </View>
       </View>
 
-      {/* Emergency Contacts */}
-      <Text style={[styles.subHeader, { marginHorizontal: 20, color: cardText }]}>Emergency Contacts</Text>
-      <View style={[styles.contactBox, { backgroundColor: cardColor }]}>
-        <View style={styles.contactRow}>
-          <Icon name="shield-outline" size={22} color="#2E7D32" />
-          <Text style={[styles.contactLabel, { color: cardText }]}>Police</Text>
-          <Text style={[styles.contactValue, { color: cardText }]}>100</Text>
-        </View>
-        <View style={styles.contactRow}>
-          <Icon name="medical-outline" size={22} color="#2E7D32" />
-          <Text style={[styles.contactLabel, { color: cardText }]}>Ambulance</Text>
-          <Text style={[styles.contactValue, { color: cardText }]}>150</Text>
-        </View>
-        <TouchableOpacity style={styles.sosButton}>
-          <Icon name="call" size={18} color="#fff" />
-          <Text style={styles.sosText}>SOS Emergency</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={[styles.subHeader, { marginHorizontal: 20, color: cardText }]}>
+  Emergency Contacts
+</Text>
+
+<View style={[styles.contactBox, { backgroundColor: cardColor }]}>
+  {/* Police */}
+  <View style={styles.contactRow}>
+    <Icon name="shield-outline" size={22} color="#2E7D32" />
+    <Text style={[styles.contactLabel, { color: cardText }]}>Police</Text>
+    <TouchableOpacity
+      onPress={() => Linking.openURL('tel:100')}
+      style={styles.callButton}
+    >
+      <Text style={styles.callButtonText}>100</Text>
+    </TouchableOpacity>
+  </View>
+
+  {/* Ambulance */}
+  <View style={styles.contactRow}>
+    <Icon name="medical-outline" size={22} color="#2E7D32" />
+    <Text style={[styles.contactLabel, { color: cardText }]}>Ambulance</Text>
+    <TouchableOpacity
+      onPress={() => Linking.openURL('tel:150')}
+      style={styles.callButton}
+    >
+      <Text style={styles.callButtonText}>150</Text>
+    </TouchableOpacity>
+  </View>
+</View>
+
     </View>
   );
 }
@@ -172,11 +230,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 12,
     borderRadius: 25,
-  },
-  sosText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
+  },callButton: {
+  backgroundColor: '#D32F2F',
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 8,
+  marginLeft: 'auto',
+},
+
+callButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
+
 });
