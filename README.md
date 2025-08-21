@@ -19,7 +19,7 @@ Welcome to **Ghumgham**! A modern, full-featured mobile application designed to 
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
--[Design}(#design)
+-[Design](#design)
 
 
 ---
@@ -137,7 +137,7 @@ Press i → Run on iOS simulator/device
 
 Now you can explore the app, create an account, browse tours, and test bookings!
 
-#Design
+# Design
 Screenshot of App
 
 ![WhatsApp Image 2025-08-21 at 9 10 56 PM (1)](https://github.com/user-attachments/assets/b023fe77-5223-440e-804e-7ea5a56e7cfd)
