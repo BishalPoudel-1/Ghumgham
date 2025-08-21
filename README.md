@@ -19,7 +19,9 @@ Welcome to **Ghumgham**! A modern, full-featured mobile application designed to 
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Usage](#usage)
--[Design](#design)
+- [Design](#design)
+
+
 
 
 ---
