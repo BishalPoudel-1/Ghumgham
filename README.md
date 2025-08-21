@@ -1,4 +1,14 @@
 # 🌍 Ghumgham ✈️
+<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+
+<img src="https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+
+<img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
+
+<img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
+
+<img src="https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white" />
+
 
 Welcome to **Ghumgham**! A modern, full-featured mobile application designed to make tour and travel booking seamless and enjoyable. Discover new destinations, book your next adventure, and manage your trips all from your phone.
 
